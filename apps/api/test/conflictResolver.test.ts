@@ -407,6 +407,50 @@ describe("conflictResolver — idempotent re-invocation", () => {
   });
 });
 
+describe("conflictResolver — audit entries carry the compared vector clocks (13b, VectorClockExplainer)", () => {
+  it("records current_vector_clock and incoming_vector_clock on a clean-apply audit entry", async () => {
+    const itemId = uniqueItemId();
+    await seedItem(itemId, { vector_clock: { counter_a: 1 } });
+
+    const message = buildMessage({
+      item_id: itemId,
+      quantity: 3,
+      client_vector_clock: { counter_a: 2 },
+    });
+    await invoke([message]);
+
+    const [entry] = await getAuditEntries(itemId);
+    const details = entry?.details as Record<string, unknown>;
+    expect(details.current_vector_clock).toEqual({ counter_a: 1 });
+    expect(details.incoming_vector_clock).toEqual({ counter_a: 2 });
+  });
+
+  it("records both clocks on a needs_review (conflict_detected) audit entry", async () => {
+    const itemId = uniqueItemId();
+    await seedItem(itemId, {
+      price: 10,
+      vector_clock: { counter_a: 1 },
+      field_last_writer: { price: "counter_a" },
+    });
+
+    const message = buildMessage({
+      item_id: itemId,
+      type: "field_update",
+      field: "price",
+      value: 12,
+      quantity: undefined,
+      client_vector_clock: { counter_b: 1 },
+    });
+    await invoke([message]);
+
+    const [entry] = await getAuditEntries(itemId);
+    expect(entry?.action).toBe("conflict_detected");
+    const details = entry?.details as Record<string, unknown>;
+    expect(details.current_vector_clock).toEqual({ counter_a: 1 });
+    expect(details.incoming_vector_clock).toEqual({ counter_b: 1 });
+  });
+});
+
 describe("conflictResolver — Bedrock price-conflict explanation (FR-7, Phase 8)", () => {
   it("attaches the explanation to conflict_candidates once Bedrock responds, on top of the already-flagged conflict", async () => {
     const itemId = uniqueItemId();

@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import type { AuditHistoryEntry } from "@stocksync/core";
 import { getAudit } from "../api/client";
+import { VectorClockExplainer } from "./VectorClockExplainer";
 
 export interface AuditLogViewProps {
   itemId: string;
@@ -48,6 +49,10 @@ export function AuditLogView({ itemId, shopId }: AuditLogViewProps) {
             <span className="text-xs text-slate-400">{new Date(entry.timestamp).toLocaleTimeString()}</span>
           </div>
           <p className="text-slate-600">{formatDetails(entry.details)}</p>
+          <details>
+            <summary className="cursor-pointer text-xs text-slate-400 hover:text-slate-600">Why?</summary>
+            <VectorClockExplainer entry={entry} />
+          </details>
         </li>
       ))}
     </ol>

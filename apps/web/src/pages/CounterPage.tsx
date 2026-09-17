@@ -11,6 +11,7 @@ import { ConnectivityToggle } from "../components/ConnectivityToggle";
 import { QueueDrawer } from "../components/QueueDrawer";
 import { ConflictReviewPanel } from "../components/ConflictReviewPanel";
 import { AuditLogView } from "../components/AuditLogView";
+import { BarcodeScanButton } from "../components/BarcodeScanButton";
 
 function useQueryParam(name: string, fallback: string): string {
   return useMemo(() => new URLSearchParams(window.location.search).get(name) ?? fallback, [name, fallback]);
@@ -85,6 +86,13 @@ export function CounterPage() {
           ))}
         </section>
       )}
+
+      <section className="mb-4">
+        <BarcodeScanButton
+          items={items}
+          onResolved={(itemId) => void submitTransaction({ itemId, type: "sale", quantity: 1 })}
+        />
+      </section>
 
       <section className="mb-6 grid grid-cols-1 gap-3 sm:grid-cols-2">
         {items.map((item) => (
