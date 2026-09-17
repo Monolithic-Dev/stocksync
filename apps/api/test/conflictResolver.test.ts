@@ -152,7 +152,7 @@ beforeAll(async () => {
   })) {
     await createTableIfNotExists(ddb, command);
   }
-}, 60000); // generous: covers a cold JVM start plus a first-time jar download
+}, 180000); // generous: covers a cold JVM start plus a first-time ~55MB jar download on a slow connection
 
 afterAll(async () => {
   await dynamoDbLocal.stop();
