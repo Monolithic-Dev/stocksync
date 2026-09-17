@@ -1,0 +1,15 @@
+node_modules/
+dist/
+cdk.out/
+.cdk.staging/
+.env
+.env.local
+.turbo/
+.DS_Store
+*.tsbuildinfo
+coverage/
+dynamodb-local-metadata.json
+test-results/
+playwright-report/
+blob-report/
+playwright/.cache/

@@ -1,0 +1,28 @@
+{
+  "name": "@stocksync/infra-cdk",
+  "private": true,
+  "version": "0.0.0",
+  "bin": {
+    "stocksync": "bin/stocksync.ts"
+  },
+  "scripts": {
+    "build": "tsc --noEmit",
+    "synth": "cdk synth",
+    "diff": "cdk diff",
+    "deploy": "cdk deploy",
+    "test": "vitest run",
+    "lint": "eslint . --ext .ts --no-error-on-unmatched-pattern"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.2",
+    "aws-cdk": "^2.174.1",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.7.2",
+    "vitest": "^2.1.8"
+  },
+  "dependencies": {
+    "aws-cdk-lib": "^2.174.1",
+    "constructs": "^10.4.2",
+    "source-map-support": "^0.5.21"
+  }
+}

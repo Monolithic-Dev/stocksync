@@ -1,0 +1,17 @@
+{
+  "name": "@stocksync/core",
+  "private": true,
+  "version": "0.0.0",
+  "main": "src/index.ts",
+  "types": "src/index.ts",
+  "scripts": {
+    "build": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "lint": "eslint . --ext .ts --no-error-on-unmatched-pattern"
+  },
+  "devDependencies": {
+    "fast-check": "^3.23.1",
+    "vitest": "^2.1.8"
+  }
+}

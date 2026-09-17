@@ -1,0 +1,83 @@
+{
+  "$schema": "https://json-schema.org/draft-07/schema#",
+  "profile_name": "aws-serverless-hackathon",
+  "description": "Solo or small-team build against a hard external deadline (hackathon, demo day). Correctness-critical core (e.g. concurrent/offline data sync) matters more than breadth. Cadence: one-shot before deadline, no ongoing release process. Cloud ceiling: effectively $0, must fit AWS always-free tier. No dedicated platform, security, or ops team — the builder(s) are all three.",
+  "version": "1.0.0",
+  "constraints": {
+    "team_size_max": 4,
+    "team_size_year_one_max": 4,
+    "deployment_cadence": "on-demand",
+    "cloud_budget_monthly_usd_ceiling": 50,
+    "user_facing": true,
+    "data_sensitivity_tier": "public-only-or-synthetic-demo-data"
+  },
+  "stack_recommendations": {
+    "primary": "typescript-monorepo-serverless-lambda",
+    "frontend": {
+      "framework": "react-plus-vite",
+      "rendering": "csr-only-no-ssr-needed",
+      "styling": "tailwind",
+      "state": "react-context-plus-usereducer-no-external-lib-at-this-scale",
+      "offline": "idb-indexeddb-wrapper-for-local-write-queue"
+    },
+    "backend": {
+      "pattern": "lambda-per-endpoint-no-framework",
+      "language": "typescript-node20",
+      "middleware": "aws-lambda-powertools-not-express-or-nestjs",
+      "database": "dynamodb-on-demand-capacity",
+      "ordering_and_concurrency": "sqs-fifo-grouped-by-affected-resource-id-not-sender-id",
+      "conflict_resolution": "vector-clocks-plus-crdt-pn-counter-for-count-like-data",
+      "async_ai": "bedrock-runtime-called-non-blocking-never-on-the-correctness-critical-path"
+    },
+    "infrastructure": {
+      "iac": "aws-cdk-typescript",
+      "hosting": "lambda-plus-api-gateway-rest-and-websocket",
+      "auth": "cognito-user-pool-or-api-key-if-single-tenant-demo",
+      "observability": "cloudwatch-logs-and-custom-metrics-only",
+      "ci_cd": "github-actions-single-environment-acceptable-pre-deadline"
+    },
+    "monorepo": {
+      "tooling": "npm-workspaces-plus-turborepo",
+      "critical_structural_rule": "business-logic-in-a-framework-free-shared-package-lambda-handlers-are-thin-adapters-only"
+    }
+  },
+  "anti_recommendations": {
+    "microservices": "kill — one team, one deadline, no second team to own a second service",
+    "kubernetes": "kill — Lambda already manages the runtime, and there is no ops headcount to run a cluster",
+    "full-backend-framework-express-nestjs": "kill — API Gateway already routes; a framework solves a long-lived-process problem this architecture doesn't have",
+    "orm-over-dynamodb": "kill — DynamoDB access patterns are known and few; an ORM adds indirection with no real benefit at 4 tables",
+    "graphql": "kill — small, well-defined API surface; REST + WebSocket covers every access pattern without a schema/resolver layer",
+    "sagemaker-or-trained-ml-model": "kill — no training data exists yet at this stage; use Bedrock as a pre-trained foundation-model API call only, never model training",
+    "load-testing-beyond-demo-scale": "warn — time spent here does not improve judging/demo outcomes; budget it last, if at all",
+    "multi-environment-cdk-before-core-is-solid": "warn — dev/staging/prod separation is real engineering maturity but must not be built before the correctness-critical core passes its own rehearsal/test gate"
+  },
+  "success_thresholds": {
+    "p50_api_latency_ms": 500,
+    "p95_api_latency_ms": 2000,
+    "p99_api_latency_ms": 4000,
+    "frontend_lcp_ms": 3000,
+    "uptime_target": "not-tracked-demo-only-not-a-production-slo",
+    "deployment_time_minutes_max": 10,
+    "test_coverage_min_on_core_logic_package": 0.9,
+    "test_coverage_min_overall": 0.4,
+    "conflict_resolution_property_tests_required": true,
+    "demo_scenario_consecutive_success_runs_required": 10
+  },
+  "ci_cd": {
+    "platform": "github-actions",
+    "stages": ["lint", "typecheck", "unit-test-core-package", "integration-test-handlers", "e2e-playwright-core-scenario", "cdk-deploy"],
+    "gates": ["core-package-property-tests-pass", "e2e-core-scenario-passes-10-consecutive-runs-before-demo-recording"]
+  },
+  "named_approver_chain": {
+    "stack_change": "you (solo builder) — no committee at this scale, but write the decision down anyway",
+    "scope_addition_beyond_core": "check against the project's own phased-scope document before adding — if it's not in Tier 1, it does not touch Tier 1's remaining build days",
+    "external-service-add": "you — but confirm it's inside the AWS always-free tier before adding"
+  },
+  "canon_references": [
+    "Shapiro, Preguica, Baquero & Zawirski, 'Conflict-free Replicated Data Types' (INRIA, 2011) — CRDT correctness properties, the basis for any PN-Counter/vector-clock design",
+    "Leslie Lamport, 'Time, Clocks, and the Ordering of Events in a Distributed System' (1978) — the original vector-clock / logical-time reasoning",
+    "AWS Well-Architected Framework — Serverless Applications Lens (2023) — idempotency, DLQs, and least-privilege IAM as default posture, not optional hardening",
+    "Werner Vogels, '10 Lessons from 10 Years of AWS' (2016) — build for the load you actually have, not hypothetical scale",
+    "Donald Reinertsen, Principles of Product Development Flow (2009) — minimize scope under a fixed deadline rather than a fixed budget"
+  ]
+}

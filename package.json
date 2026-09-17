@@ -1,0 +1,34 @@
+{
+  "name": "stocksync",
+  "private": true,
+  "version": "0.0.0",
+  "packageManager": "npm@10.9.2",
+  "workspaces": [
+    "apps/*",
+    "packages/*",
+    "infra/*"
+  ],
+  "scripts": {
+    "build": "turbo run build",
+    "test": "turbo run test",
+    "lint": "turbo run lint",
+    "seed:demo": "tsx scripts/seed-demo-data.ts",
+    "reset:demo": "tsx scripts/reset-demo.ts",
+    "simulate:conflict": "tsx scripts/simulate-conflict.ts"
+  },
+  "devDependencies": {
+    "turbo": "^2.3.3",
+    "typescript": "^5.7.2",
+    "tsx": "^4.19.2",
+    "eslint": "^8.57.1",
+    "@typescript-eslint/parser": "^8.19.0",
+    "@typescript-eslint/eslint-plugin": "^8.19.0",
+    "eslint-config-prettier": "^9.1.0",
+    "prettier": "^3.4.2",
+    "@aws-sdk/client-dynamodb": "^3.700.0",
+    "@aws-sdk/lib-dynamodb": "^3.700.0"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}
