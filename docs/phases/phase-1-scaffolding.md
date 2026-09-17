@@ -78,6 +78,7 @@
 - [ ] `.github/workflows/ci.yml` exists and a pushed commit shows a green `lint`/`test`/`build` run (test/build can be no-ops at this point, but the workflow must run without erroring).
 - [ ] AWS Budget alarm is visibly configured at $20 in the console.
 - [ ] Every folder in `06-FOLDER-STRUCTURE.md`'s Tier-1 tree exists (even if empty), confirmed via `find . -type d`.
+- [ ] **Re-confirm at the start of Phase 3, and again at the start of Phase 7, that `npx cdk deploy` still succeeds against real AWS** — not just once on Day 1. Credentials expire, trial access can lapse, and a later phase silently falling back to local-only validation because access quietly broke is a real, serious risk category, not a hypothetical one — see the note in `phase-7-integration-demo-scenario.md`.
 
 ## Risks & Blockers
 

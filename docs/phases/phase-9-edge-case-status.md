@@ -1,5 +1,29 @@
 # Phase 9 — Edge-Case Status
 
+> **⚠ P0 blocker found in this report, elevated here from a footnote
+> under the dashboard bullet below:** the CloudWatch entry under "Other
+> Phase 9 tasks" states verification is "blocked on live AWS access, same
+> standing constraint as Phases 7–8." That means the core demo scenario
+> (Phase 7), the Bedrock integration (Phase 8), and this dashboard have
+> **all** only been validated against a local dev server
+> (`apps/api/src/local/server.ts`), never against real deployed AWS
+> infrastructure. Phase 7's own stated goal requires validation "backed by
+> real deployed AWS infrastructure" — so by that phase's own definition,
+> it is not actually done yet, no matter how many local tests pass. Given
+> the Ship It track's first requirement is a real, deployed URL, resolving
+> AWS access is the single highest-priority action right now, ahead of
+> every other item in this file.
+>
+> **Verification note on the two fixes below:** the PN-Counter bug (A-4's
+> sibling finding, actually surfaced via `phase-2-core-conflict-logic.md`)
+> was independently reproduced and confirmed against the actual
+> `packages/core` scaffolder code, with a permanent regression test now
+> shipping in it. A-4 and B-1 below live in `apps/api`, which isn't
+> something this review has direct access to — they're recorded here as
+> reported, not independently re-executed, and are exactly the kind of
+> fix that live AWS validation (once unblocked) should specifically
+> re-confirm, not just trust from local test output.
+
 One-line status for every row in `docs/general/07-EDGE-CASES.md`, per that
 phase's Definition of Done. Two real gaps were found and fixed during this
 pass (marked ⚠ FIXED below); everything else was either already correct

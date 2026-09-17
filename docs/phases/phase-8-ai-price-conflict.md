@@ -1,5 +1,11 @@
 # Phase 8: AI — Price-Conflict Assistant (Bedrock)
 
+> **⚠ Same AWS-access blocker as `phase-7-integration-demo-scenario.md`
+> applies here.** A real Bedrock call against a local dev server is not
+> the same as one running inside the actual deployed conflict-resolver
+> Lambda — confirm live AWS access is genuinely working before treating
+> this phase's Definition of Done as met.
+
 ## Header
 
 **Goal:** When a same-field price conflict is flagged `needs_review`, Amazon Bedrock generates a plain-language explanation of the discrepancy, displayed alongside both raw values — without ever blocking the core conflict-flagging or being able to auto-resolve it.

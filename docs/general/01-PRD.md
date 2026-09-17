@@ -121,9 +121,8 @@ guarantee for count-like data.
 - Dead-letter handling for malformed writes
 - Live WebSocket push of reconciled state on reconnect
 - Full, human-readable audit trail
-- Plain-language explanation of a genuine price conflict via Amazon Bedrock
-- Voice-based transaction entry in a regional language (Amazon Transcribe + Bedrock)
-- Bedrock-driven reorder alerts based on recent sale velocity
+- Plain-language explanation of a genuine price conflict via Amazon Bedrock,
+  including how long both devices were concurrently offline as context
 
 ### 5.2 In scope — the client (thin, deliberately)
 
@@ -135,8 +134,9 @@ guarantee for count-like data.
 - Animated per-transaction sync status
 - Attribution badges showing which counter last changed a field
 - A conflict-review screen for the needs-review case
-- A timeline-style audit log UI (for the "Best UI" claim)
-- Client-side Barcode/QR quick-entry for sales (no new AWS service needed)
+- A timeline-style audit log UI (for the "Best UI" claim) — pure
+  presentation change to `AuditLogView`, no new AWS service, no new
+  Tier-1 risk
 
 ### 5.3 Explicitly out of scope
 
@@ -154,6 +154,21 @@ guarantee for count-like data.
 ### 5.4 Stretch scope (only after core scope is fully working and rehearsed)
 
 - A CloudWatch dashboard shown briefly in the demo
+- **Voice-based transaction entry** (Amazon Transcribe + Bedrock) — a
+  real, non-trivial new integration (audio capture UX, mic permissions
+  across devices, transcription reliability). Genuinely valuable, but a
+  new failure surface at exactly the wrong time to add one. See
+  `11-PHASED-SCOPE.md` Tier 2, item 2.8.
+- **Bedrock-driven reorder alerts** — cannot actually be Tier 1 as
+  designed: it reads from `daily_analytics` and `suppliers.lead_time_days`
+  (`03-DATABASE-SCHEMA.md` Section 8), both Tier-2-only tables. Building
+  this before Tier 2's CRUD and analytics pipeline exist isn't just
+  risky, it's not buildable — the data it needs doesn't exist yet. See
+  `11-PHASED-SCOPE.md` Tier 2, item 2.7.
+- **Client-side Barcode/QR quick-entry** — a genuinely new client
+  capability (scanning library, camera permissions, decode reliability
+  across devices) with real integration risk and no counterbalancing
+  correctness value. See `11-PHASED-SCOPE.md` Tier 2, item 2.9.
 
 ---
 
@@ -277,10 +292,13 @@ PN-Counter resolution, field-level merge, mandatory conflict flagging,
 atomic writes, dead-letter handling, live push, full audit trail.
 
 **Standout / differentiating features:** Bedrock price-conflict
-assistant, voice-based transaction entry, Bedrock reorder alerts, animated per-transaction sync states, attribution badges,
-an explicit in-UI network kill switch for a controlled demo, timeline-style audit log UI, and client-side barcode/QR scanning.
+assistant (with concurrent-offline-duration context), animated per-transaction sync states, attribution badges,
+an explicit in-UI network kill switch for a controlled demo, and a
+timeline-style audit log UI.
 
-**Stretch:** CloudWatch dashboard shown in-demo.
+**Tier 2 / stretch (see `11-PHASED-SCOPE.md`):** voice-based transaction
+entry, Bedrock reorder alerts, client-side barcode/QR scanning, plus a
+CloudWatch dashboard shown in-demo.
 
 ---
 
@@ -289,7 +307,7 @@ an explicit in-UI network kill switch for a controlled demo, timeline-style audi
 | Risk | Impact | Mitigation |
 |---|---|---|
 | A subtle race condition surfaces only under specific timing during the live demo recording | High — the entire pitch is "we handle this correctly" | Property-based tests for PN-counter commutativity; rehearse the exact demo scenario at least 10 times before recording |
-| Scope creep into real POS features | Medium — burns build time without improving judging outcomes | Section 5.3 is the explicit reference to check against before adding any feature |
+| Scope creep into real POS features | Medium — burns build time without improving judging outcomes | Section 5.3 is the explicit reference to check against before adding any feature. (This risk already materialized once — voice entry, reorder alerts, and barcode/QR were briefly promoted into Tier 1 scope before being caught and reverted here; treat that as evidence the risk is real, not hypothetical.) |
 | WebSocket push flakiness (stale connections) | Medium — could visibly break the "live reconnect" demo moment | `ws_connections` table with proper `$connect`/`$disconnect` lifecycle handling (see architecture doc) |
 | Team spends too long on UI polish | Medium — trades execution-hardening time for a "nice to have" | Best-UI polish (Section 5.2 items) is timeboxed to Day 8 in the build plan, after the core scenario is solid |
 | Bedrock latency or errors during the live demo | Low-medium — could stall the conflict-review screen | The needs-review flag and both raw values are shown immediately regardless of whether Bedrock's explanation has returned yet — Bedrock is additive, never blocking |
@@ -447,3 +465,5 @@ algorithm.
 | FR-19 | The system SHALL send a notification when an item's stock falls below a configurable threshold, or when a conflict remains `needs_review` for longer than a configurable duration. |
 | FR-20 | The system SHALL answer natural-language questions about a shop's current data by retrieving the relevant data and passing it as context to Bedrock, never by allowing Bedrock to answer from general knowledge about the shop's specific numbers. |
 | FR-21 | The system SHALL support voice-based transaction entry by transcribing speech, parsing it into a structured transaction via Bedrock, and submitting it through the standard transaction pipeline — never as a separate, unvalidated write path. |
+| FR-22 | The system SHALL generate reorder suggestions only from data already computed in `daily_analytics` and `suppliers` (Tier 2) — this FR is not implementable until those tables exist, by construction. |
+| FR-23 | The client SHALL support optional barcode/QR-based item lookup as an alternative input method to the existing sell/restock buttons, without introducing a new transaction type or bypassing existing validation. |

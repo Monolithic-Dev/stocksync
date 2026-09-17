@@ -115,22 +115,25 @@ reset script.
 
 ---
 
-## Day 8 — Bedrock + Transcribe integration, audio UI, conflict panel, audit UI
+## Day 8 — Bedrock integration, timeline audit UI, conflict panel
 
 - Implement the Bedrock call in the conflict-resolver (async,
-  non-blocking per edge case G-3), pass `overlap_seconds` in the prompt, and wire the
-  `ai_summary` into the `needs_review` WebSocket push.
-- Build `ConflictReviewPanel` and `AuditLogView` (timeline-style) components.
+  non-blocking per edge case G-3), pass `overlap_seconds` in the prompt
+  (clamped per edge case C-6), and wire `bedrock_explanation` into the
+  `needs_review` WebSocket push.
+- Build `ConflictReviewPanel` and the timeline-style `AuditLogView`
+  component.
 - Add attribution badges to `ItemCard`.
 - Add the animated `Queued → Replaying → Reconciled` transaction states.
-- Implement **Voice transaction entry (P1):** a microphone button per counter,
-  audio blob POSTed to `POST /transactions/voice`, the Lambda calls Transcribe
-  then Bedrock then the standard write pipeline.
+
+**Not this day (Tier 2 — see `11-PHASED-SCOPE.md`):** voice transaction
+entry, reorder alerts, and barcode/QR were briefly scheduled here before
+being reverted to Tier 2 — see the Tier 2 Extension Days section below
+for where they actually belong if there's real time margin later.
 
 **Exit criterion:** the same-field conflict scenario, run end to end
 through the actual UI, shows both raw values + `overlap_seconds` immediately
 and the Bedrock explanation appearing shortly after, without blocking the UI.
-A spoken phrase (e.g. "sold five Parle-G") successfully creates a transaction.
 
 ---
 
@@ -193,12 +196,18 @@ A reasonable allocation if you're running on schedule:
   (2.1) + checkout flow (2.2) — these share a lot of plumbing and go
   together naturally.
 - **Extra Day B:** Cognito auth (2.3) + analytics rollup and dashboard
-  (2.4) + **Bedrock reorder alerts** (read `daily_analytics`, call
-  `/assistant/reorder-suggestion`).
-- **Extra Day C (only if both above are solid):** notifications (2.5)
-  and the AI assistant (2.6, 2.7).
-- **Do not attempt multi-environment CDK stacks (2.7) unless everything
-  above is done with at least one full day of margin remaining before Day 10.**
+  (2.4). Do not start reorder alerts until 2.4 is actually deployed and
+  populated — it reads directly from the table 2.4 creates.
+- **Extra Day C (only if A and B are solid):** notifications (2.5), the
+  AI assistant (2.6), and **Bedrock reorder alerts (2.7)** — now
+  unblocked since 2.4 exists.
+- **Extra Day D (only with genuine margin remaining):** voice entry
+  (2.8) and barcode/QR (2.9), in either order — both are independent
+  additions with no data dependency on anything above, but both are
+  real new integrations in their own right. Do not attempt
+  multi-environment CDK stacks (2.10) unless everything above is done
+  with at least one full day of margin remaining before the final
+  submission day.
 
 If at any point a Tier 2 feature is fighting you and eating into Day
 9–10's hardening and rehearsal time, stop and cut it — an unfinished

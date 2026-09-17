@@ -20,7 +20,7 @@ measurably reduces inconsistent code generation across a multi-day build.
 |---|---|---|
 | Language | TypeScript (strict mode) everywhere | Type safety across the whole monorepo; one language to reason about |
 | Frontend framework | React 18 + Vite | Fast dev server, minimal config, huge ecosystem, easy for Claude Code to generate idiomatic code for |
-| Frontend hosting | AWS Amplify Hosting | Zero-config CI/CD for the React app — push to `main` and the frontend is live; no S3/CloudFront wiring needed at hackathon scale |
+| Frontend hosting | AWS Amplify Hosting | Zero-config CI/CD for the React app — push to `main` and the frontend is live; no S3/CloudFront wiring needed at hackathon scale. **Coordination note:** this is a second, independent deploy mechanism alongside `cdk deploy` — the frontend needs `VITE_API_URL`/`VITE_WS_URL` pointing at whatever the CDK stack's API Gateway just output, so this must be wired deliberately (Amplify environment variables set from CDK outputs, or a manual update step) rather than assumed to happen automatically. See `06-FOLDER-STRUCTURE.md`'s `deploy.yml` for how this is sequenced. |
 | Frontend styling | Tailwind CSS | Fast to iterate visually without hand-rolling CSS files — matters for the Best UI polish pass |
 | Frontend offline storage | `idb` (a small Promise-based wrapper over IndexedDB) | Avoids hand-rolling the raw IndexedDB callback API |
 | Frontend state | React Context + `useReducer` (no external state library) | The app's state shape is small and well-defined enough that Redux/Zustand would be unnecessary overhead for a 10-day build |
@@ -54,7 +54,7 @@ measurably reduces inconsistent code generation across a multi-day build.
   exists and deploys empty as of Phase 1; there's no reason to pay a
   second tool's learning curve mid-build.
 - CDK's App/Stack/Construct model also gives per-environment
-  parameterization (see Section 10.9 of the architecture doc) for free
+  parameterization (see Section 10.10 of the architecture doc) for free
   via constructor props, without a second templating layer.
 
 See the `aws-solution-architect` and `senior-devops` skills for the full

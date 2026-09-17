@@ -2,6 +2,7 @@ import { execSync, spawn, type ChildProcess } from "node:child_process";
 import { existsSync, mkdirSync } from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
+import { x as extractTar } from "tar";
 import { ResourceInUseException } from "@aws-sdk/client-dynamodb";
 import type { DynamoDBDocumentClient } from "@aws-sdk/lib-dynamodb";
 
@@ -19,12 +20,18 @@ const INSTALL_DIR = path.join(os.homedir(), ".cache", "stocksync-dynamodb-local"
 const JAR_PATH = path.join(INSTALL_DIR, "DynamoDBLocal.jar");
 const LIB_PATH = path.join(INSTALL_DIR, "DynamoDBLocal_lib");
 
-function ensureInstalled(): void {
+async function ensureInstalled(): Promise<void> {
   if (existsSync(JAR_PATH)) return;
   mkdirSync(INSTALL_DIR, { recursive: true });
   const archivePath = path.join(INSTALL_DIR, "dynamodb-local.tar.gz");
   execSync(`curl -fsSL -o "${archivePath}" "${DOWNLOAD_URL}"`, { stdio: "inherit" });
-  execSync(`tar -xzf "${archivePath}" -C "${INSTALL_DIR}"`, { stdio: "inherit" });
+  // Extracting via the `tar` npm package (not a shelled-out `tar` binary):
+  // Windows has two incompatible `tar`s on PATH (Git's GNU tar and the
+  // System32 bsdtar), and both failed here in different, PATH-order- and
+  // MSYS-runtime-dependent ways when invoked outside a real MSYS shell —
+  // not worth chasing further when a well-known, cross-platform library
+  // (the same one npm itself uses) sidesteps the whole class of issue.
+  await extractTar({ file: archivePath, cwd: INSTALL_DIR });
 }
 
 async function isReachable(port: number): Promise<boolean> {
@@ -61,7 +68,7 @@ export async function startDynamoDbLocal(port: number): Promise<DynamoDbLocalHan
     return { stop: async () => {} };
   }
 
-  ensureInstalled();
+  await ensureInstalled();
 
   const child: ChildProcess = spawn(
     "java",

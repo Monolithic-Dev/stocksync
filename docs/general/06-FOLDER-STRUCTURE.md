@@ -114,7 +114,12 @@ stocksync/
 ├── .github/
 │   └── workflows/
 │       ├── ci.yml                    # lint + test + build on every PR
-│       └── deploy.yml                # cdk deploy on merge to main
+│       └── deploy.yml                # cdk deploy (backend) on merge to main,
+│                                      # THEN update Amplify's env vars from
+│                                      # the CDK stack's API Gateway outputs —
+│                                      # Amplify's own git-triggered build only
+│                                      # handles the frontend; it does not know
+│                                      # about the backend URL on its own
 │
 ├── turbo.json
 ├── package.json                      # workspace root, defines the workspaces array
@@ -187,7 +192,11 @@ apps/
 │       ├── ProductForm.tsx
 │       ├── CartDrawer.tsx
 │       ├── AnalyticsChart.tsx       # recharts-based
-│       └── VoiceEntryButton.tsx
+│       ├── VoiceEntryButton.tsx
+│       └── BarcodeScanButton.tsx    # camera-based scan; resolves to an
+│                                    # item_id and pre-fills the existing
+│                                    # sell/restock action — not a new
+│                                    # transaction type
 │
 └── api/src/handlers/
     ├── productsCrud.ts

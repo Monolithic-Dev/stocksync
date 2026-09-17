@@ -45,10 +45,12 @@ themselves, is convinced.
 **[1:45–2:15] The harder case — same-field conflict**
 - Both counters go offline again. Counter A sets the price to ₹10,
   Counter B sets it to ₹12.
-- Reconnect. Show the conflict banner: both values shown, plus the
-  Bedrock-generated plain-language explanation of the discrepancy.
+- Reconnect. Show the conflict banner: both values shown, how long both
+  devices were concurrently offline, plus the Bedrock-generated
+  plain-language explanation of the discrepancy.
 - Narrate: "When it genuinely can't tell which edit should win, it
-  doesn't guess — it asks, and explains why."
+  doesn't guess — it asks, tells you how long both were offline for
+  context, and explains why."
 
 **[2:15–2:40] The architecture, fast**
 - One diagram, ~20 seconds: "Every write is deduplicated, ordered
