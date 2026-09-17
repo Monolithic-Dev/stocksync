@@ -40,7 +40,7 @@ Serves AP-1 and AP-7.
 | `vector_clock` | Map | `{ [counter_id]: sequence_number }` |
 | `field_last_writer` | Map | `{ [field_name]: counter_id }` |
 | `conflict_status` | String | `none` \| `needs_review` |
-| `conflict_candidates` | Map (nullable) | present only when `conflict_status = needs_review`; e.g. `{ field: "price", values: [{counter_id, value, client_timestamp, server_timestamp}, ...], overlap_seconds: number }` — `client_timestamp` from each write's payload is used to compute `overlap_seconds`, the exact duration both devices were offline and edited concurrently. This is passed to Bedrock for a richer, context-aware explanation. |
+| `conflict_candidates` | Map (nullable) | present only when `conflict_status = needs_review`; e.g. `{ field: "price", values: [{counter_id, value, client_timestamp, server_timestamp}, ...], overlap_seconds: number }` — `client_timestamp` from each write's payload is used to compute `overlap_seconds`, the approximate duration both devices were offline and edited concurrently. **Approximate, not authoritative** — computed from client-device clocks, which edge case C-4 already establishes can be wrong or unsynchronized between devices. Passed to Bedrock as advisory context for its explanation only; never used by `resolve()`'s actual decision logic, which depends solely on vector clocks. |
 | `updated_at` | String (ISO timestamp) | |
 
 **GSI-1 — `ShopConflictIndex`:** partition key `shop_id`, sort key
@@ -89,7 +89,9 @@ screen the demo's audit trail relies on.
 
 ## 5. Table: `ws_connections`
 
-Serves AP-5 and AP-6.
+Serves AP-5 and AP-6. **Should-have, not a must-have** — see
+`01-PRD.md` Section 6.2. If the WebSocket push path is cut for time, this
+table is simply never created; nothing else in the schema depends on it.
 
 | Attribute | Type | Notes |
 |---|---|---|
@@ -242,6 +244,10 @@ analytics. The actual stock-affecting writes still go through
 this table never becomes a second source of truth for stock state.
 
 ### 8.5 Table: `daily_analytics`
+
+**This table is a hard prerequisite for the reorder-alerts feature**
+(`02-ARCHITECTURE.md` Section 10.7) — that feature reads directly from
+here and cannot be built before this table exists and is populated.
 
 | Attribute | Type | Notes |
 |---|---|---|

@@ -60,6 +60,7 @@
 - [ ] `npm test --workspace=packages/core` passes, 0 failures.
 - [ ] The property-based commutativity test runs at least 100 generated cases per `fast-check`'s default and passes on all of them.
 - [ ] Deliberately reintroducing a known-bad version (a plain G-Counter that can't decrement) causes the property test to fail — confirmed once, then reverted — proving the test actually catches the bug class it claims to (per `senior-qa` skill's "has this test ever failed" standard).
+- [ ] **A second concurrent counter delta from the same client, sent after that client already has a non-zero accumulated total, correctly accumulates rather than dropping the smaller amount.** This was a real bug in an earlier version of `resolve()` — it called `pnCounter.merge()` (max-based, correct only for combining two independently-built snapshots) instead of `applyDelta()` (accumulate) when applying a live incoming counter delta in the `isConcurrent` branch. Confirmed via a standalone reproduction: with `current` already at `{counter_a: 7}` and a second concurrent decrement of `3` from `counter_a`, the buggy version returned `7` (the new sale silently vanished) instead of `10`. Fixed by always using `applyDelta` for a live incoming delta regardless of dominates/concurrent status — that distinction only matters for field writes, never for counter deltas. A permanent regression test for this now ships with the scaffolder template.
 - [ ] No file under `packages/core/src` imports anything from `@aws-sdk/*`.
 
 ## Risks & Blockers

@@ -146,9 +146,9 @@ request/response shape used internally). Never on the critical path for
 correctness — the conflict is flagged and both values are shown
 regardless of whether this call succeeds, times out, or is skipped.
 
-### 3.8 Amazon Transcribe
+### 3.8 Amazon Transcribe (Tier 2 — see `11-PHASED-SCOPE.md`)
 
-Used for the voice-based transaction entry feature. Converts a short audio clip (Hindi/Tamil) from the client into text before Bedrock parses it into a structured transaction payload.
+Used for the voice-based transaction entry feature. Converts a short audio clip (Hindi/Tamil) from the client into text before Bedrock parses it into a structured transaction payload. Not part of the Tier-1 build — see `01-PRD.md` Section 5.4.
 
 ### 3.9 CloudWatch
 
@@ -204,8 +204,13 @@ PN-counter's simple, order-independent addition.
    in `inventory_records`.
 3. Writes an `audit_log` entry documenting the conflict.
 4. Asynchronously invokes Bedrock with both values and their context
-   (who set them, when, and the exact `overlap_seconds` calculated using the `client_timestamp` to show "how concurrent was this really") to generate a context-aware, plain-language
-   explanation.
+   (who set them, when, and the `overlap_seconds` calculated from each
+   write's `client_timestamp` to show "how concurrent was this really").
+   **`overlap_seconds` is best-effort, not authoritative** — it's derived
+   from client-device clocks, which edge case C-4 already establishes can
+   be wrong or unsynchronized. It's passed to Bedrock purely as advisory
+   color for a human-facing explanation, never as an input to the actual
+   `resolve()` decision, which depends only on vector clocks.
 5. Pushes a `needs_review` WebSocket event to connected clients,
    including the explanation once available (or without it, if Bedrock
    hasn't returned yet — the UI does not block on this).
@@ -215,6 +220,12 @@ PN-counter's simple, order-independent addition.
    a final `audit_log` entry.
 
 ### 4.5 WebSocket connection lifecycle
+
+> **Scope note:** this and everything touching `ws_connections` is a
+> **should-have, not a must-have** — see `01-PRD.md` Section 6.2's
+> "Should have" list and `09-BUILD-PLAN.md`'s Day 8 guidance. If time is
+> short, cut this and fall back to `GET /sync` polling on reconnect; it
+> proves the same correctness story with less risk.
 
 1. `$connect`: client connects with its counter/shop identity; Lambda
    writes a row to `ws_connections` (connection ID, shop ID, item
@@ -417,6 +428,13 @@ autonomous agent for a 10-day build.
 
 ### 10.7 AI reorder suggestions
 
+**Hard prerequisite, not just a priority order:** this feature reads
+`daily_analytics` (Section 10.4) and `suppliers.lead_time_days` (Section
+10.2). Neither exists until those two are built. This isn't "build this
+after those for tidiness" — it's literally not implementable before
+them, since the data it needs doesn't exist yet. Do not attempt this
+before 10.2 and 10.4 are both deployed and populated.
+
 A `reorderSuggestions.ts` Lambda (callable on-demand from the dashboard)
 reads a product's recent daily sales velocity from `daily_analytics` and
 its supplier's lead time from the `suppliers` table, and asks Bedrock to
@@ -436,7 +454,20 @@ a prompt constraining it to output a structured transaction matching the
 through the standard transaction pipeline — reusing all of Sections 3–9
 unchanged.
 
-### 10.9 Multi-environment deployment
+### 10.9 Client-side barcode/QR quick-entry
+
+A camera-based scanning library (e.g. a lightweight JS barcode/QR
+decoder) resolves a scanned code to an `item_id` client-side, then
+pre-fills the existing sell/restock action — it is an alternate *input
+method* into the same client action, not a new transaction type or a new
+backend endpoint. No new AWS service is required. Real integration risk
+lives entirely in the client (camera permission prompts, decode
+reliability across devices/lighting), which is exactly why this is Tier
+2 rather than a Tier-1 dependency — it can fail without touching
+correctness, but it can absolutely fail visibly on a recorded demo if
+rushed.
+
+### 10.10 Multi-environment deployment
 
 The infrastructure is defined using **AWS CDK** (TypeScript) — see
 `05-TECH-STACK.md` Section 3 for why CDK over SAM/Terraform for this

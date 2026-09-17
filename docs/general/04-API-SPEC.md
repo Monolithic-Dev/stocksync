@@ -46,14 +46,28 @@ Submit one or more sale/restock/field-update transactions.
 ```json
 {
   "results": [
-    { "idempotency_key": "b3f1c2a0-...", "status": "applied", "conflict": false },
-    { "idempotency_key": "c4a2d3b1-...", "status": "needs_review", "conflict": true }
+    { "idempotency_key": "b3f1c2a0-...", "status": "queued" },
+    { "idempotency_key": "c4a2d3b1-...", "status": "duplicate" }
   ]
 }
 ```
 
-`status` values: `applied`, `duplicate`, `conflict_resolved`,
-`needs_review`.
+`status` values here are **only** `queued` (new, now enqueued for
+resolution) or `duplicate` (this idempotency key was already seen —
+`cached_response` from `write_dedup` is returned instead of re-processing).
+
+**This is deliberately not the final resolution outcome.** Write-intake
+enqueues and returns immediately (see `02-ARCHITECTURE.md` Section 3.3)
+— it does not wait for the conflict-resolver to run, so it cannot know
+yet whether a transaction ends up `applied`, merged via CRDT/field-merge,
+or flagged `needs_review`.
+
+**The client learns the real outcome one of two ways:**
+- **Live, if WebSocket push is built** (see Section 2 below) — a
+  `record_updated` or `needs_review` event arrives shortly after.
+- **On next `GET /sync`** (see below) — the fully-resolved state is
+  always there, and `GET /audit/{item_id}` shows exactly how each
+  transaction was resolved, after the fact.
 
 ---
 
@@ -189,17 +203,23 @@ simple, non-concurrent write — see PRD Section 13's open question for why.
     { "counter_id": "counter_a", "value": 10, "client_timestamp": "2026-09-17T10:04:00Z" },
     { "counter_id": "counter_b", "value": 12, "client_timestamp": "2026-09-17T10:04:05Z" }
   ],
-  "ai_summary": null
+  "bedrock_explanation": null
 }
 ```
 
-Note `ai_summary` may arrive as `null` initially and be
+Note `bedrock_explanation` may arrive as `null` initially and be
 followed by a second `needs_review` push once Bedrock's response
 returns — the UI must handle both states gracefully (see
-`07-EDGE-CASES.md`, AI section). The `overlap_seconds` field shows exactly
-how long both devices were offline and editing the same record concurrently,
-giving the human decision-maker useful context about how "genuinely conflicted"
-the situation really was.
+`07-EDGE-CASES.md`, AI section). **This field name must match exactly
+across every surface that carries it** — the DB schema
+(`03-DATABASE-SCHEMA.md`), this WebSocket push, and `GET /conflicts`
+(Section 1 above) all refer to the same underlying value; a client or
+Lambda coded against one and not the others would silently read `null`
+forever. The `overlap_seconds` field shows the *approximate* duration
+both devices were offline and editing the same record concurrently — it
+is computed from client-device clocks (see the caveat in
+`03-DATABASE-SCHEMA.md` Section 2), so treat it as advisory context for
+the human, never as a precise or authoritative figure.
 
 ---
 
@@ -209,11 +229,11 @@ conflict-resolver Lambda, never exposed directly to the client)
 **Request shape sent to Bedrock (Claude via Bedrock Runtime):**
 ```json
 {
-  "system": "You are a plain-language assistant explaining data conflicts in a small shop's inventory system to a shop owner who is not technical. Be concise: 1-2 sentences. Where available, use the overlap_seconds to describe how long both devices were offline simultaneously.",
+  "system": "You are a plain-language assistant explaining data conflicts in a small shop's inventory system to a shop owner who is not technical. Be concise: 1-2 sentences. Where available, use overlap_seconds to describe how long both devices were offline simultaneously — but note it is an approximate figure derived from device clocks, not a precise measurement, so don't state it with more confidence than that.",
   "messages": [
     {
       "role": "user",
-      "content": "Two shop counters set different prices for the same item while both were offline for 300 seconds (5 minutes). Counter A set it to ₹10, Counter B set it to ₹12. Explain this discrepancy in plain language and suggest what the owner should consider when picking the correct value."
+      "content": "Two shop counters set different prices for the same item while both were offline for approximately 300 seconds (5 minutes). Counter A set it to ₹10, Counter B set it to ₹12. Explain this discrepancy in plain language and suggest what the owner should consider when picking the correct value."
     }
   ]
 }

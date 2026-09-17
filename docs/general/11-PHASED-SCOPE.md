@@ -19,13 +19,17 @@ to Tier 1, full stop, regardless of how tempting a Tier 2 feature is.
 
 This is everything in the original scope: offline-first sync, PN-Counter
 stock resolution, field-level merge, mandatory conflict flagging, atomic
-writes, the audit trail, and the price-conflict Bedrock assist.
+writes, the audit trail (timeline-style, for the "Best UI" claim), and
+the price-conflict Bedrock assist (including `overlap_seconds` context).
 
-**Also included in Tier 1 (promoted from stretch/Tier 2):**
-- **Voice-based transaction entry** (Amazon Transcribe + Bedrock) — a genuine, non-decorative AI feature that solves a real UX problem for counter staff mid-rush. Day 8.
-- **Bedrock reorder alerts** — demonstrates AI reasoning over real sales data, not just wrapped LLM calls.
-- **Timeline-style audit log UI** — makes the audit trail a visual storytelling tool in the demo, reinforces the "Best UI" claim.
-- **Client-side Barcode/QR quick-entry** — adds realism with no new AWS services needed.
+**Voice entry, Bedrock reorder alerts, and client-side barcode/QR were
+briefly promoted into this tier and have been reverted back to Tier 2**
+(see the table below) — reorder alerts in particular cannot actually be
+built before Tier 2's analytics pipeline exists, since it reads directly
+from a table that pipeline creates. The timeline-style audit UI and the
+`overlap_seconds` context stay in Tier 1 because neither adds real risk:
+no new AWS service, no new data dependency, no new client capability
+that could visibly fail on camera.
 
 This must be flawless. Nothing in Tier 2 or 3 is worth a single hour of Tier 1's
 polish or rehearsal time.
@@ -52,7 +56,10 @@ every feature runs on, not a demo appendage.
 | 2.4 | Daily analytics rollup + dashboard | Gives the owner persona a reason to exist beyond conflict resolution; cheap to build as a scheduled Lambda over existing `audit_log` data |
 | 2.5 | Low-stock and conflict notifications (SNS/SES) | Small addition, high perceived-completeness payoff; also gives you a second, distinct AWS service story to tell in the demo |
 | 2.6 | AI assistant: natural-language querying of shop data | A genuinely new AI use case (not just conflict explanation) — "how much did Counter B sell today" answered in plain language |
-| 2.7 | Multi-environment CDK stacks (dev/staging/prod) + CI/CD gate | The single highest-leverage "this looks like a real engineering org" signal for the least implementation risk |
+| 2.7 | Bedrock reorder alerts | **Hard prerequisite on 2.4** — reads `daily_analytics` and `suppliers.lead_time_days` directly; cannot be built before those exist, not just risky to build early |
+| 2.8 | Voice-based transaction entry (Amazon Transcribe + Bedrock) | Genuinely valuable UX for counter staff mid-rush, but a real new integration (audio capture, mic permissions, transcription reliability) — no data dependency on anything above, but real standalone risk |
+| 2.9 | Client-side barcode/QR quick-entry | No new AWS service, no data dependency — but a new client capability (camera permissions, decode reliability) with its own real integration risk |
+| 2.10 | Multi-environment CDK stacks (dev/staging/prod) + CI/CD gate | The single highest-leverage "this looks like a real engineering org" signal for the least implementation risk |
 
 **Build these in the listed order.** Each one is scoped to be addable
 independently — if you run out of days at 2.5, you stop there with a

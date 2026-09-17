@@ -83,6 +83,10 @@ since mocking risks testing your mocks instead of your actual logic.
 - Dead-letter behavior: a deliberately malformed message results in the
   message appearing in the DLQ, not silently disappearing or blocking
   the queue.
+- `overlap_seconds` computation: given two conflicting writes with
+  skewed client clocks (one `client_timestamp` earlier than physically
+  possible relative to the other), the computed value is clamped to 0
+  rather than surfaced as negative (edge case C-6).
 
 ---
 

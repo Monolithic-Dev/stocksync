@@ -2,6 +2,19 @@
 
 **This phase's exit criterion is the single most important checkpoint in the entire 10-day plan.** Nothing in Phase 8 onward should start until it's genuinely met.
 
+> **⚠ P0 blocker, check this before anything else in this file:** this
+> phase's own Goal below says the scenario must be proven "backed by real
+> deployed AWS infrastructure." If work here has actually been proceeding
+> against a local dev server (`apps/api/src/local/server.ts`) because live
+> AWS access wasn't available, **this Definition of Done has not actually
+> been met, regardless of how many local tests pass.** DynamoDB Streams
+> timing, SQS visibility timeouts, real Lambda cold starts, and real IAM
+> permission boundaries are exactly the class of thing a local substitute
+> cannot exercise — and the Ship It track's first requirement is a live,
+> deployed URL, not a local demo. If AWS access is not currently working:
+> stop everything else and resolve that first. It is not a documentation
+> problem to note and move past; it is the actual blocker.
+
 ## Header
 
 **Goal:** The full canonical conflict scenario (US-3, US-4, US-5) runs correctly through the *real* UI, end to end, backed by real deployed AWS infrastructure — proven both by an automated Playwright test and by manual, repeated, human-driven rehearsal.
