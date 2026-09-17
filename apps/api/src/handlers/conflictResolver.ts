@@ -268,7 +268,15 @@ function finalizeResult(params: {
         counter_id: message.counter_id,
         action: "conflict_detected",
         resolution_strategy: "needs_review",
-        details: { field: result.field, values: candidates.map((c) => c.value) },
+        // current_vector_clock/incoming_vector_clock: additive, for
+        // apps/web's VectorClockExplainer (13b) — the actual clocks
+        // compared to reach this decision, not used by resolve() itself.
+        details: {
+          field: result.field,
+          values: candidates.map((c) => c.value),
+          current_vector_clock: priorItem?.vector_clock ?? {},
+          incoming_vector_clock: message.client_vector_clock ?? {},
+        },
       },
       wsPayload: {
         type: "needs_review",
@@ -284,10 +292,14 @@ function finalizeResult(params: {
     };
   }
 
-  const details =
-    message.type === "field_update"
+  const details = {
+    ...(message.type === "field_update"
       ? { field: message.field, value: message.value }
-      : { quantity: message.quantity, resulting_stock: nextItem.stock };
+      : { quantity: message.quantity, resulting_stock: nextItem.stock }),
+    // See the needs_review branch above for why these are here.
+    current_vector_clock: priorItem?.vector_clock ?? {},
+    incoming_vector_clock: message.client_vector_clock ?? {},
+  };
 
   return {
     dedupStatus: "applied",
