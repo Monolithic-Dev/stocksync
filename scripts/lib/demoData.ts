@@ -13,6 +13,8 @@ export interface SeedItem {
   price: number;
   shelf_location: string;
   supplier: string;
+  /** Human-readable category name — used to seed the Tier 2 categories/products tables (19b) alongside inventory_records. */
+  category: string;
   /** ISO date (YYYY-MM-DD) — only set for perishables (15b). */
   expiry_date?: string;
 }
@@ -25,8 +27,24 @@ function daysFromNow(days: number): string {
 }
 
 export const SEED_ITEMS: SeedItem[] = [
-  { item_id: "parle-g", name: "Parle-G 100g", stock: 50, price: 10, shelf_location: "Aisle 2", supplier: "Parle Products" },
-  { item_id: "rice-5kg", name: "Rice 5kg", stock: 20, price: 350, shelf_location: "Aisle 1", supplier: "Local Wholesaler" },
+  {
+    item_id: "parle-g",
+    name: "Parle-G 100g",
+    stock: 50,
+    price: 10,
+    shelf_location: "Aisle 2",
+    supplier: "Parle Products",
+    category: "Biscuits",
+  },
+  {
+    item_id: "rice-5kg",
+    name: "Rice 5kg",
+    stock: 20,
+    price: 350,
+    shelf_location: "Aisle 1",
+    supplier: "Local Wholesaler",
+    category: "Grains",
+  },
   {
     item_id: "milk-500ml",
     name: "Milk 500ml",
@@ -34,6 +52,7 @@ export const SEED_ITEMS: SeedItem[] = [
     price: 25,
     shelf_location: "Fridge",
     supplier: "Amul",
+    category: "Dairy",
     expiry_date: daysFromNow(3),
   },
   {
@@ -43,9 +62,15 @@ export const SEED_ITEMS: SeedItem[] = [
     price: 40,
     shelf_location: "Aisle 3",
     supplier: "Local Bakery",
+    category: "Bakery",
     expiry_date: daysFromNow(2),
   },
 ];
+
+/** Lowercase, hyphenated id derived from a human-readable name — stable and idempotent across reseeds, unlike a random UUID. */
+function slugify(name: string): string {
+  return name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
+}
 
 export function ddbClientFromEnv(): DynamoDBDocumentClient {
   const client = new DynamoDBClient(
@@ -105,4 +130,64 @@ export async function seedDemoData(
     );
     console.log(`Seeded ${item.item_id} (stock=${item.stock}) into ${inventoryRecordsTable}`);
   }
+}
+
+/**
+ * Seeds the Tier 2 catalog tables (19b) to match SEED_ITEMS, so
+ * ProductsPage/CheckoutPage have real data on first load instead of an
+ * empty catalog. Reuses each SeedItem's item_id as its product_id — a
+ * deliberate simplification (a real catalog would have independent ids)
+ * that keeps the demo's inventory, product, and checkout data
+ * consistently referencing the same key. Idempotent, like seedDemoData.
+ */
+export async function seedCatalogData(
+  ddb: DynamoDBDocumentClient,
+  tables: { products: string; categories: string; suppliers: string },
+  shopId: string,
+): Promise<void> {
+  const now = new Date().toISOString();
+  const categoryNames = [...new Set(SEED_ITEMS.map((item) => item.category))];
+  const supplierNames = [...new Set(SEED_ITEMS.map((item) => item.supplier))];
+
+  for (const name of categoryNames) {
+    const categoryId = slugify(name);
+    await ddb.send(
+      new PutCommand({
+        TableName: tables.categories,
+        Item: { pk: `SHOP#${shopId}`, sk: `CATEGORY#${categoryId}`, shop_id: shopId, category_id: categoryId, name, created_at: now, updated_at: now },
+      }),
+    );
+  }
+
+  for (const name of supplierNames) {
+    const supplierId = slugify(name);
+    await ddb.send(
+      new PutCommand({
+        TableName: tables.suppliers,
+        Item: { pk: `SHOP#${shopId}`, sk: `SUPPLIER#${supplierId}`, shop_id: shopId, supplier_id: supplierId, name, created_at: now, updated_at: now },
+      }),
+    );
+  }
+
+  for (const item of SEED_ITEMS) {
+    await ddb.send(
+      new PutCommand({
+        TableName: tables.products,
+        Item: {
+          pk: `SHOP#${shopId}`,
+          sk: `PRODUCT#${item.item_id}`,
+          shop_id: shopId,
+          product_id: item.item_id,
+          name: item.name,
+          sku: item.item_id.toUpperCase(),
+          category_id: slugify(item.category),
+          supplier_id: slugify(item.supplier),
+          base_price: item.price,
+          created_at: now,
+          updated_at: now,
+        },
+      }),
+    );
+  }
+  console.log(`Seeded ${categoryNames.length} categories, ${supplierNames.length} suppliers, ${SEED_ITEMS.length} products into the Tier 2 catalog.`);
 }

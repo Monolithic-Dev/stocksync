@@ -34,7 +34,7 @@ import type {
 } from "aws-lambda";
 import { SendMessageCommand } from "@aws-sdk/client-sqs";
 import { createTableIfNotExists, startDynamoDbLocal } from "../../test/helpers/dynamoDbLocal";
-import { localTableDefinitions } from "../lib/localTables";
+import { localTableDefinitions, platformTableDefinitions } from "../lib/localTables";
 
 const DYNAMODB_PORT = Number(process.env.LOCAL_DYNAMODB_PORT ?? 8200);
 const HTTP_PORT = Number(process.env.LOCAL_API_PORT ?? 4000);
@@ -48,18 +48,34 @@ const TABLE_NAMES = {
   wsConnections: "ws_connections_local",
 };
 
+const PLATFORM_TABLE_NAMES = {
+  products: "products_local",
+  categories: "categories_local",
+  suppliers: "suppliers_local",
+  orders: "orders_local",
+};
+
 process.env.DYNAMODB_ENDPOINT = `http://localhost:${DYNAMODB_PORT}`;
 process.env.INVENTORY_RECORDS_TABLE_NAME = TABLE_NAMES.inventoryRecords;
 process.env.AUDIT_LOG_TABLE_NAME = TABLE_NAMES.auditLog;
 process.env.WRITE_DEDUP_TABLE_NAME = TABLE_NAMES.writeDedup;
 process.env.WS_CONNECTIONS_TABLE_NAME = TABLE_NAMES.wsConnections;
 process.env.WEBSOCKET_CALLBACK_URL = `http://localhost:${MANAGEMENT_PORT}`;
+process.env.PRODUCTS_TABLE_NAME = PLATFORM_TABLE_NAMES.products;
+process.env.CATEGORIES_TABLE_NAME = PLATFORM_TABLE_NAMES.categories;
+process.env.SUPPLIERS_TABLE_NAME = PLATFORM_TABLE_NAMES.suppliers;
+process.env.ORDERS_TABLE_NAME = PLATFORM_TABLE_NAMES.orders;
+// checkout.ts calls writeIntake.ts's handler directly, in-process — it
+// reads these same two env vars, already set above.
 
 async function main(): Promise<void> {
   await startDynamoDbLocal(DYNAMODB_PORT);
 
   const { ddb } = await import("../lib/dynamo");
   for (const command of localTableDefinitions(TABLE_NAMES)) {
+    await createTableIfNotExists(ddb, command);
+  }
+  for (const command of platformTableDefinitions(PLATFORM_TABLE_NAMES)) {
     await createTableIfNotExists(ddb, command);
   }
 
@@ -70,6 +86,10 @@ async function main(): Promise<void> {
   const { handler: conflictResolveHandler } = await import("../handlers/conflictResolve");
   const { handler: wsConnectHandler } = await import("../handlers/wsConnect");
   const { handler: wsDisconnectHandler } = await import("../handlers/wsDisconnect");
+  const { handler: productsCrudHandler } = await import("../handlers/productsCrud");
+  const { handler: categoriesCrudHandler } = await import("../handlers/categoriesCrud");
+  const { handler: suppliersCrudHandler } = await import("../handlers/suppliersCrud");
+  const { handler: checkoutHandler } = await import("../handlers/checkout");
   const { sqs } = await import("../lib/sqs");
 
   // ---- WebSocket: $connect / $disconnect + the raw connections used by
@@ -228,6 +248,35 @@ async function main(): Promise<void> {
       body: JSON.stringify(req.body),
     } as unknown as APIGatewayProxyEventV2;
     send(res, await conflictResolveHandler(event));
+  });
+
+  // ---- Tier 2 CRUD (19b) — one handler per resource, dispatching on
+  // requestContext.http.method exactly like it does behind API Gateway
+  // HTTP API in production; this router just builds that same event
+  // shape from the equivalent Express request. ----
+  function crudEvent(req: express.Request, idParam?: string): APIGatewayProxyEventV2 {
+    return {
+      requestContext: { http: { method: req.method } },
+      pathParameters: idParam ? { [idParam]: req.params[idParam] } : undefined,
+      queryStringParameters: req.query,
+      body: req.method === "POST" || req.method === "PUT" ? JSON.stringify(req.body) : undefined,
+    } as unknown as APIGatewayProxyEventV2;
+  }
+
+  for (const [routePath, idParam, resourceHandler] of [
+    ["products", "product_id", productsCrudHandler],
+    ["categories", "category_id", categoriesCrudHandler],
+    ["suppliers", "supplier_id", suppliersCrudHandler],
+  ] as const) {
+    app.get(`/${routePath}`, async (req, res) => send(res, await resourceHandler(crudEvent(req))));
+    app.post(`/${routePath}`, async (req, res) => send(res, await resourceHandler(crudEvent(req))));
+    app.put(`/${routePath}/:${idParam}`, async (req, res) => send(res, await resourceHandler(crudEvent(req, idParam))));
+    app.delete(`/${routePath}/:${idParam}`, async (req, res) => send(res, await resourceHandler(crudEvent(req, idParam))));
+  }
+
+  app.post("/checkout", async (req, res) => {
+    const event = { body: JSON.stringify(req.body) } as APIGatewayProxyEventV2;
+    send(res, await checkoutHandler(event));
   });
 
   app.listen(HTTP_PORT, () => {
