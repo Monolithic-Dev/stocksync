@@ -68,15 +68,27 @@ coordination note.
    download, not a known failure. Confirm it's actually green before
    trusting it.
 
-6. **Deploy the frontend via Amplify Hosting:**
-   - Connect the repo, point at `apps/web`.
-   - Set `VITE_API_URL` and `VITE_WS_URL` in Amplify's environment
-     variables to the CDK stack's actual outputs from step 4 — **this is
-     a manual step, not automatic**, per the coordination gap
-     `05-TECH-STACK.md` already flags. Getting this wrong produces a
-     frontend that builds successfully but can't reach the backend,
-     which looks like a mysterious blank/broken app, not an obvious
-     config error.
+6. **Deploy the frontend via Amplify Hosting.** Two ways to do this:
+   - **Console, GitHub-connected** (auto-deploys on push): connect the
+     repo, point at `apps/web`, set `VITE_API_BASE_URL` and
+     `VITE_WEBSOCKET_URL` (the actual names — see
+     `apps/web/src/api/client.ts` — not `VITE_API_URL`/`VITE_WS_URL`) in
+     Amplify's environment variables to the CDK stack's actual outputs
+     from step 4.
+   - **CLI, manual zip deploy** (no GitHub/OAuth step, faster to get a
+     first URL): `VITE_API_BASE_URL=... VITE_WEBSOCKET_URL=... npx vite
+     build` inside `apps/web` (Vite bakes these into the built JS at
+     build time, so they must be set *before* building, not after), zip
+     `apps/web/dist`, then `aws amplify create-app` →
+     `create-branch` → `create-deployment` (returns a presigned S3
+     `zipUploadUrl`) → `curl -X PUT -T <zip> <zipUploadUrl>` →
+     `start-deployment`. Trade-off: a future code change needs this
+     whole sequence re-run manually, not just a `git push`.
+   - Either way, getting the API URLs wrong produces a frontend that
+     builds successfully but can't reach the backend, which looks like a
+     mysterious blank/broken app, not an obvious config error — this is a
+     real, documented coordination gap (`05-TECH-STACK.md`), not
+     automatic.
    - Confirm the build succeeds and the Amplify-provided URL loads.
 
 7. **Seed real demo data against the real stack:**
