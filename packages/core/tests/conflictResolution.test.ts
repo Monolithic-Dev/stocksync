@@ -197,6 +197,43 @@ describe("resolve — same-field conflict (US-5)", () => {
   });
 });
 
+describe("resolve — 15b expiry_date generalizes through the existing field-merge engine unchanged", () => {
+  it("flags needs_review on concurrent, different expiry dates for the same batch — same path as a price conflict", () => {
+    const state: RecordState = {
+      fields: { expiry_date: "2026-09-20" },
+      fieldLastWriter: { expiry_date: "counter_a" },
+      vectorClock: { counter_a: 1 },
+    };
+    const result = resolve(state, {
+      clientId: "counter_b",
+      vectorClock: { counter_b: 1 },
+      fields: { expiry_date: "2026-09-22" },
+    });
+    expect(result.kind).toBe("needs_review");
+    if (result.kind === "needs_review") {
+      expect(result.field).toBe("expiry_date");
+      expect(result.candidates).toEqual([
+        { clientId: "counter_a", value: "2026-09-20" },
+        { clientId: "counter_b", value: "2026-09-22" },
+      ]);
+    }
+  });
+
+  it("merges a concurrent expiry_date update alongside a disjoint price update without conflict", () => {
+    const b = resolve(seededItem, {
+      clientId: "counter_b",
+      vectorClock: { counter_b: 1 },
+      fields: { expiry_date: "2026-09-22" },
+    });
+    expect(b.kind).toBe("applied");
+    if (b.kind === "applied") {
+      expect(b.state.fields.expiry_date).toBe("2026-09-22");
+      expect(b.state.fields.price).toBe(10); // untouched, disjoint field
+      expect(b.strategy).toBe("field_merge");
+    }
+  });
+});
+
 describe("resolve — purity", () => {
   it("is deterministic: the same inputs always produce the same result", () => {
     const write = { clientId: "counter_b", vectorClock: { counter_b: 1 }, fields: { price: 12 } };

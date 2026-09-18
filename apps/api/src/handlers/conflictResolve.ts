@@ -140,6 +140,7 @@ export async function handler(event: APIGatewayProxyEventV2): Promise<APIGateway
     item_id: itemId,
     ...(field === "price" ? { price: chosenValue as number } : {}),
     ...(field === "shelf_location" ? { shelf_location: chosenValue as string } : {}),
+    ...(field === "expiry_date" ? { expiry_date: chosenValue as string } : {}),
     field_last_writer: { ...item.field_last_writer, [field]: resolvedBy },
     vector_clock: item.vector_clock,
   }).catch((error) => {

@@ -6,7 +6,7 @@ import type { PNCounterState, RecordState, VectorClock } from "@stocksync/core";
  * field_update transactions in any documented scenario, so they're passed
  * through untouched rather than folded into RecordState.fields.
  */
-export const MERGEABLE_FIELDS = ["price", "shelf_location", "supplier"] as const;
+export const MERGEABLE_FIELDS = ["price", "shelf_location", "supplier", "expiry_date"] as const;
 export type MergeableField = (typeof MERGEABLE_FIELDS)[number];
 
 export interface ConflictCandidateItem {
@@ -36,6 +36,7 @@ export interface InventoryRecordItem {
   price?: number;
   shelf_location?: string;
   supplier?: string;
+  expiry_date?: string;
   vector_clock: VectorClock;
   field_last_writer: Record<string, string>;
   conflict_status: "none" | "needs_review";

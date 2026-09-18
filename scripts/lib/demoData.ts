@@ -13,12 +13,38 @@ export interface SeedItem {
   price: number;
   shelf_location: string;
   supplier: string;
+  /** ISO date (YYYY-MM-DD) — only set for perishables (15b). */
+  expiry_date?: string;
+}
+
+/** A few days out from "now" at seed time, not a fixed calendar date — stays a believable near-term expiry regardless of when the demo is actually run. */
+function daysFromNow(days: number): string {
+  const date = new Date();
+  date.setDate(date.getDate() + days);
+  return date.toISOString().slice(0, 10);
 }
 
 export const SEED_ITEMS: SeedItem[] = [
   { item_id: "parle-g", name: "Parle-G 100g", stock: 50, price: 10, shelf_location: "Aisle 2", supplier: "Parle Products" },
   { item_id: "rice-5kg", name: "Rice 5kg", stock: 20, price: 350, shelf_location: "Aisle 1", supplier: "Local Wholesaler" },
-  { item_id: "milk-500ml", name: "Milk 500ml", stock: 30, price: 25, shelf_location: "Fridge", supplier: "Amul" },
+  {
+    item_id: "milk-500ml",
+    name: "Milk 500ml",
+    stock: 30,
+    price: 25,
+    shelf_location: "Fridge",
+    supplier: "Amul",
+    expiry_date: daysFromNow(3),
+  },
+  {
+    item_id: "bread",
+    name: "Bread 400g",
+    stock: 15,
+    price: 40,
+    shelf_location: "Aisle 3",
+    supplier: "Local Bakery",
+    expiry_date: daysFromNow(2),
+  },
 ];
 
 export function ddbClientFromEnv(): DynamoDBDocumentClient {
@@ -66,6 +92,7 @@ export async function seedDemoData(
           price: item.price,
           shelf_location: item.shelf_location,
           supplier: item.supplier,
+          expiry_date: item.expiry_date,
           vector_clock: {},
           // Deliberately empty — AttributionBadge renders nothing for a
           // falsy counter_id, so a seeded field shows no badge until a
