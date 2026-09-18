@@ -52,6 +52,18 @@ themselves, is convinced.
   doesn't guess — it asks, tells you how long both were offline for
   context, and explains why."
 
+**[optional bonus beat, if time allows — Chaos demo (Phase 17/15a)]**
+- Submit a sale via the UI, then immediately set `conflictResolverFn`'s
+  reserved concurrency to 0 in the AWS Console for a few seconds.
+- Narrate: "the function that resolves this write just got cut off —
+  watch what happens" — then restore concurrency and show the
+  transaction complete correctly, exactly once, no duplication.
+- **Timing notes: TBD** — this needs rehearsal against the real deployed
+  stack (not yet done as of this writing; blocked on AWS deploy) before
+  it's trusted live. Rehearse it 5x per the same bar as every other
+  demo-critical beat before using it in the final recording; cut it
+  without hesitation if it's not solid.
+
 **[2:15–2:40] The architecture, fast**
 - One diagram, ~20 seconds: "Every write is deduplicated, ordered
   per-item through SQS FIFO, resolved with a CRDT counter, and committed
