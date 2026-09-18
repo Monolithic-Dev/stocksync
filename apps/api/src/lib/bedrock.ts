@@ -10,7 +10,12 @@ const logger = createLogger("bedrock");
 const TIMEOUT_MS = 4000;
 const MAX_TOKENS = 200;
 
-const MODEL_ID = process.env.BEDROCK_MODEL_ID ?? "anthropic.claude-3-haiku-20240307-v1:0";
+// Falls back to this default only for the local dev server, which never
+// sets BEDROCK_MODEL_ID (the deployed Lambda always gets it from CDK's
+// infra/cdk/lib/config.ts — keep this in sync with that file's
+// bedrockModelId; claude-3-haiku-20240307-v1:0 is fully retired from
+// Bedrock's catalog as of this deployment).
+const MODEL_ID = process.env.BEDROCK_MODEL_ID ?? "anthropic.claude-haiku-4-5-20251001-v1:0";
 
 // senior-prompt-engineer/references/bedrock-prompt-templates.md §1 —
 // verbatim. Asks for an explanation and "what to consider," never "which
