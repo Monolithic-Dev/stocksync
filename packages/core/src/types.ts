@@ -74,6 +74,8 @@ export interface TransactionInput {
   value?: unknown;
   client_vector_clock?: VectorClock;
   client_timestamp?: string;
+  /** Set only when this transaction is one line item of a checkout (19b) — groups its audit_log entry with the rest of the order. Purely additive: the write pipeline and resolve() neither require nor inspect it. */
+  order_id?: string;
 }
 
 export type TransactionResultStatus = "queued" | "duplicate";
@@ -144,6 +146,60 @@ export interface AuditHistoryEntry {
  * `vector_clock` is carried on both variants for the same reason it's on
  * `SyncItem` — see that field's doc comment.
  */
+/**
+ * Tier 2 catalog DTOs (19b, 03-DATABASE-SCHEMA.md §8.1-8.4) — static
+ * product/category/supplier metadata and checkout-order summaries.
+ * Deliberately separate from InventoryRecordItem/SyncItem: none of this
+ * data is subject to concurrent-offline-edit conflicts the way live
+ * stock/price state is, so plain last-write-wins (no vector clock, no
+ * PN-Counter) is the correct, deliberate choice — see senior-architect's
+ * guidance on when CRDT-level rigor is and isn't warranted.
+ */
+export interface Product {
+  product_id: string;
+  shop_id: string;
+  name: string;
+  sku?: string;
+  category_id?: string;
+  supplier_id?: string;
+  base_price?: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface Category {
+  category_id: string;
+  shop_id: string;
+  name: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface Supplier {
+  supplier_id: string;
+  shop_id: string;
+  name: string;
+  lead_time_days?: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface OrderLineItem {
+  product_id: string;
+  quantity: number;
+  unit_price: number;
+}
+
+export interface Order {
+  order_id: string;
+  shop_id: string;
+  counter_id: string;
+  line_items: OrderLineItem[];
+  total_amount: number;
+  status: "completed" | "refunded";
+  created_at: string;
+}
+
 export type WsPushMessage =
   | {
       type: "record_updated";

@@ -82,6 +82,7 @@ function validateTransaction(raw: unknown, index: number): ValidatedTransaction 
     value: entry.value,
     client_vector_clock: (entry.client_vector_clock as VectorClock | undefined) ?? undefined,
     client_timestamp: typeof entry.client_timestamp === "string" ? entry.client_timestamp : undefined,
+    order_id: typeof entry.order_id === "string" ? entry.order_id : undefined,
   };
 }
 
@@ -159,6 +160,7 @@ async function processTransaction(
     value: transaction.value,
     client_vector_clock: transaction.client_vector_clock,
     client_timestamp: transaction.client_timestamp,
+    order_id: transaction.order_id,
   };
 
   await sqs.send(
