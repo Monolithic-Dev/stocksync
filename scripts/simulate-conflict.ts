@@ -9,6 +9,9 @@
  *   API_BASE_URL=http://localhost:4000 npm run simulate:conflict -- --reconnect-order=b-first
  */
 import { randomUUID } from "node:crypto";
+import { config } from "dotenv";
+
+config({ path: ".env.local" });
 
 const API_BASE_URL = process.env.API_BASE_URL ?? "http://localhost:4000";
 const API_KEY = process.env.API_KEY ?? "local-e2e-key";
