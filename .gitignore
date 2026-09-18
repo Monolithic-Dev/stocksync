@@ -4,6 +4,7 @@ cdk.out/
 .cdk.staging/
 .env
 .env.local
+*credentials*.csv
 .turbo/
 .DS_Store
 *.tsbuildinfo
