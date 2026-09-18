@@ -127,6 +127,19 @@ into the plan from day one, not as an afterthought after the demo
 works — the bug it caught here was invisible in every rehearsal until I
 went looking for it deliberately.
 
+## The bigger shape of the problem
+
+I didn't set out to build a lending product, but building the audit
+trail correctly produced something adjacent to one almost for free: a
+timestamped, tamper-evident record of a shop's actual sales activity.
+Most small Indian retailers have no such record today — they run on
+cash and memory — which is a real part of why formal credit is so hard
+for them to access. I'm not claiming StockSync does anything with that
+now. But a shop's StockSync history would be a far more honest input to
+a creditworthiness decision than anything most lenders can see about
+that shop today, and that's worth having in view even at hackathon
+scale.
+
 Full source, architecture docs, and the edge-case catalog are in the
 repo: see the [README](../README.md) for the complete breakdown and demo
 video link.
