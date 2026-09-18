@@ -1,6 +1,7 @@
 import type { DisplayItem } from "../state/ShopContext";
 import { AttributionBadge } from "./AttributionBadge";
 import { EditableField } from "./EditableField";
+import { AlertTriangleIcon, BoxIcon, CalendarIcon, MapPinIcon, MinusIcon, PlusIcon, TagIcon } from "./icons";
 
 export interface ItemCardProps {
   item: DisplayItem;
@@ -13,8 +14,8 @@ export interface ItemCardProps {
 export function ItemCard({ item, highlighted, onSell, onRestock, onFieldUpdate }: ItemCardProps) {
   return (
     <div
-      className={`rounded-lg border bg-white p-4 shadow-sm ${
-        highlighted ? "border-slate-900 ring-2 ring-slate-900" : "border-slate-200"
+      className={`rounded-lg border bg-white p-4 shadow-sm transition-shadow hover:shadow-md ${
+        highlighted ? "border-indigo-400 ring-2 ring-indigo-400" : "border-slate-200"
       }`}
       data-testid={`item-card-${item.item_id}`}
     >
@@ -24,25 +25,30 @@ export function ItemCard({ item, highlighted, onSell, onRestock, onFieldUpdate }
           {item.stock_anomaly && (
             <span
               data-testid="stock-anomaly-badge"
-              className="rounded-full bg-rose-100 px-2 py-0.5 text-xs font-medium text-rose-800"
+              className="flex items-center gap-1 rounded-full bg-rose-100 px-2 py-0.5 text-xs font-medium text-rose-800"
               title="Stock went negative — this likely indicates a real discrepancy worth investigating, not a display bug"
             >
+              <AlertTriangleIcon className="h-3 w-3" />
               Stock anomaly
             </span>
           )}
           {item.conflict_status === "needs_review" && (
-            <span className="rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-800">
+            <span className="flex items-center gap-1 rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-800">
+              <AlertTriangleIcon className="h-3 w-3" />
               Needs review
             </span>
           )}
         </div>
       </div>
 
-      <dl className="mt-3 grid grid-cols-2 gap-x-4 gap-y-1 text-sm">
-        <dt className="text-slate-500">Stock</dt>
+      <dl className="mt-3 grid grid-cols-2 gap-x-4 gap-y-1.5 text-sm">
+        <dt className="flex items-center gap-1.5 text-slate-500">
+          <BoxIcon className="h-3.5 w-3.5" />
+          Stock
+        </dt>
         <dd
           data-testid="stock-value"
-          className={`text-right font-medium ${
+          className={`text-right font-medium transition-colors ${
             item.stock_anomaly ? "text-rose-700" : item.optimistic ? "text-slate-400 italic" : "text-slate-900"
           }`}
         >
@@ -52,7 +58,10 @@ export function ItemCard({ item, highlighted, onSell, onRestock, onFieldUpdate }
 
         {item.price !== undefined && (
           <>
-            <dt className="text-slate-500">Price</dt>
+            <dt className="flex items-center gap-1.5 text-slate-500">
+              <TagIcon className="h-3.5 w-3.5" />
+              Price
+            </dt>
             <dd className="flex items-center justify-end gap-1 text-right font-medium text-slate-900">
               ₹
               <EditableField
@@ -67,7 +76,10 @@ export function ItemCard({ item, highlighted, onSell, onRestock, onFieldUpdate }
 
         {item.shelf_location !== undefined && (
           <>
-            <dt className="text-slate-500">Shelf</dt>
+            <dt className="flex items-center gap-1.5 text-slate-500">
+              <MapPinIcon className="h-3.5 w-3.5" />
+              Shelf
+            </dt>
             <dd className="flex items-center justify-end gap-1 text-right font-medium text-slate-900">
               <EditableField
                 value={item.shelf_location}
@@ -81,7 +93,10 @@ export function ItemCard({ item, highlighted, onSell, onRestock, onFieldUpdate }
 
         {item.expiry_date !== undefined && (
           <>
-            <dt className="text-slate-500">Expires</dt>
+            <dt className="flex items-center gap-1.5 text-slate-500">
+              <CalendarIcon className="h-3.5 w-3.5" />
+              Expires
+            </dt>
             <dd className="flex items-center justify-end gap-1 text-right font-medium text-slate-900">
               <EditableField
                 value={item.expiry_date}
@@ -98,15 +113,17 @@ export function ItemCard({ item, highlighted, onSell, onRestock, onFieldUpdate }
         <button
           type="button"
           onClick={() => onSell(item.item_id)}
-          className="flex-1 rounded-md bg-slate-900 px-3 py-2 text-sm font-medium text-white hover:bg-slate-700"
+          className="flex flex-1 items-center justify-center gap-1 rounded-md bg-indigo-600 px-3 py-2 text-sm font-medium text-white transition-colors hover:bg-indigo-700 active:scale-95"
         >
+          <MinusIcon className="h-3.5 w-3.5" />
           Sell 1
         </button>
         <button
           type="button"
           onClick={() => onRestock(item.item_id)}
-          className="flex-1 rounded-md border border-slate-300 px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
+          className="flex flex-1 items-center justify-center gap-1 rounded-md border border-slate-300 px-3 py-2 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-50 active:scale-95"
         >
+          <PlusIcon className="h-3.5 w-3.5" />
           Restock 1
         </button>
       </div>
