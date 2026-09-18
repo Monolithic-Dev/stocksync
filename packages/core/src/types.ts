@@ -162,6 +162,6 @@ export type WsPushMessage =
       field: string;
       overlap_seconds: number;
       values: ConflictCandidateDTO[];
-      ai_summary: string | null;
+      bedrock_explanation: string | null;
       vector_clock: VectorClock;
     };

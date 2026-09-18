@@ -4,14 +4,20 @@ import { EditableField } from "./EditableField";
 
 export interface ItemCardProps {
   item: DisplayItem;
+  highlighted?: boolean;
   onSell: (itemId: string) => void;
   onRestock: (itemId: string) => void;
   onFieldUpdate: (itemId: string, field: string, value: unknown) => void;
 }
 
-export function ItemCard({ item, onSell, onRestock, onFieldUpdate }: ItemCardProps) {
+export function ItemCard({ item, highlighted, onSell, onRestock, onFieldUpdate }: ItemCardProps) {
   return (
-    <div className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm" data-testid={`item-card-${item.item_id}`}>
+    <div
+      className={`rounded-lg border bg-white p-4 shadow-sm ${
+        highlighted ? "border-slate-900 ring-2 ring-slate-900" : "border-slate-200"
+      }`}
+      data-testid={`item-card-${item.item_id}`}
+    >
       <div className="flex items-start justify-between gap-2">
         <h3 className="font-semibold text-slate-900">{item.name ?? item.item_id}</h3>
         <div className="flex flex-wrap justify-end gap-1">

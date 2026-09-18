@@ -87,7 +87,7 @@ function reducer(state: ShopState, action: ShopAction): ShopState {
           field: message.field,
           overlap_seconds: message.overlap_seconds,
           values: message.values,
-          bedrock_explanation: message.ai_summary ?? undefined,
+          bedrock_explanation: message.bedrock_explanation ?? undefined,
         },
         vector_clock: message.vector_clock,
         optimistic: false,

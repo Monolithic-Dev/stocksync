@@ -83,7 +83,7 @@ describe("ShopContext reducer", () => {
             { counter_id: "counter_a", value: 10 },
             { counter_id: "counter_b", value: 12 },
           ],
-          ai_summary: null,
+          bedrock_explanation: null,
           vector_clock: { counter_a: 1, counter_b: 1 },
         },
       });
