@@ -17,16 +17,17 @@
     "simulate:conflict": "tsx scripts/simulate-conflict.ts"
   },
   "devDependencies": {
-    "turbo": "^2.3.3",
-    "typescript": "^5.7.2",
-    "tsx": "^4.19.2",
-    "eslint": "^8.57.1",
-    "@typescript-eslint/parser": "^8.19.0",
+    "@aws-sdk/client-dynamodb": "^3.700.0",
+    "@aws-sdk/lib-dynamodb": "^3.700.0",
     "@typescript-eslint/eslint-plugin": "^8.19.0",
+    "@typescript-eslint/parser": "^8.19.0",
+    "dotenv": "^18.0.0",
+    "eslint": "^8.57.1",
     "eslint-config-prettier": "^9.1.0",
     "prettier": "^3.4.2",
-    "@aws-sdk/client-dynamodb": "^3.700.0",
-    "@aws-sdk/lib-dynamodb": "^3.700.0"
+    "tsx": "^4.19.2",
+    "turbo": "^2.3.3",
+    "typescript": "^5.7.2"
   },
   "engines": {
     "node": ">=20"
