@@ -45,7 +45,10 @@ async function isReachable(port: number): Promise<boolean> {
   }
 }
 
-async function waitUntilReady(port: number, timeoutMs = 20000): Promise<void> {
+// 20s was too tight under real CI resource contention — seen flake once
+// on a shared GitHub Actions runner (a rerun passed clean immediately
+// after, confirming it was JVM-boot slowness, not a real bug).
+async function waitUntilReady(port: number, timeoutMs = 45000): Promise<void> {
   const start = Date.now();
   while (Date.now() - start < timeoutMs) {
     if (await isReachable(port)) return;
