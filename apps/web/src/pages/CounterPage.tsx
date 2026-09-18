@@ -12,6 +12,7 @@ import { QueueDrawer } from "../components/QueueDrawer";
 import { ConflictReviewPanel } from "../components/ConflictReviewPanel";
 import { AuditLogView } from "../components/AuditLogView";
 import { BarcodeScanButton } from "../components/BarcodeScanButton";
+import { AlertTriangleIcon, BoxIcon, ClockHistoryIcon, ScanIcon } from "../components/icons";
 
 function useQueryParam(name: string, fallback: string): string {
   return useMemo(() => new URLSearchParams(window.location.search).get(name) ?? fallback, [name, fallback]);
@@ -53,23 +54,42 @@ export function CounterPage() {
 
   return (
     <div className="mx-auto max-w-3xl p-4 sm:p-6">
-      <header className="mb-6 flex items-center justify-between">
-        <div>
-          <h1 className="text-xl font-bold text-slate-900">StockSync Counter</h1>
-          <p className="text-sm text-slate-500">
-            {shopId} · {counterId}
-          </p>
+      <header className="mb-6 flex items-center justify-between gap-3">
+        <div className="flex items-center gap-3">
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-indigo-600 text-white shadow-sm">
+            <BoxIcon className="h-5 w-5" />
+          </div>
+          <div>
+            <h1 className="text-lg font-bold leading-tight text-slate-900 sm:text-xl">StockSync Counter</h1>
+            <p className="flex items-center gap-1.5 text-sm text-slate-500">
+              <span>{shopId}</span>
+              <span className="text-slate-300">·</span>
+              <span className="rounded-full bg-slate-100 px-2 py-0.5 text-xs font-semibold text-slate-600">{counterId}</span>
+            </p>
+          </div>
         </div>
         <ConnectivityToggle isOnline={isOnline} onToggle={toggleOffline} />
       </header>
 
-      {state.syncStatus === "loading" && <p className="text-sm text-slate-400">Loading inventory…</p>}
+      {state.syncStatus === "loading" && (
+        <p className="mb-4 flex items-center gap-2 text-sm text-slate-400">
+          <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-slate-300 border-t-indigo-500" />
+          Loading inventory…
+        </p>
+      )}
       {state.syncStatus === "error" && (
-        <p className="text-sm text-rose-600">Couldn't load inventory. Check the connection and try again.</p>
+        <p className="mb-4 flex items-center gap-2 rounded-md border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-700">
+          <AlertTriangleIcon className="h-4 w-4 shrink-0" />
+          Couldn't load inventory. Check the connection and try again.
+        </p>
       )}
 
       {conflictedItems.length > 0 && (
         <section className="mb-6 space-y-3">
+          <h2 className="flex items-center gap-1.5 text-sm font-semibold text-amber-800">
+            <AlertTriangleIcon className="h-4 w-4" />
+            Needs your review
+          </h2>
           {conflictedItems.map((item) => (
             <ConflictReviewPanel
               key={item.item_id}
@@ -95,8 +115,9 @@ export function CounterPage() {
             explicit clicks as picking the item from the list below. */}
         <BarcodeScanButton items={items} onResolved={(itemId) => setScannedItemId(itemId)} />
         {scannedItemId && (
-          <div className="mt-2 flex items-center gap-2 rounded-md border border-slate-300 bg-slate-50 p-2 text-sm">
-            <span className="flex-1 text-slate-700">
+          <div className="mt-2 flex animate-[fadeIn_150ms_ease-out] items-center gap-2 rounded-md border border-indigo-200 bg-indigo-50 p-2 text-sm">
+            <ScanIcon className="h-4 w-4 shrink-0 text-indigo-500" />
+            <span className="flex-1 text-indigo-900">
               Scanned: <span className="font-medium">{items.find((item) => item.item_id === scannedItemId)?.name ?? scannedItemId}</span>
             </span>
             <button
@@ -105,7 +126,7 @@ export function CounterPage() {
                 void submitTransaction({ itemId: scannedItemId, type: "sale", quantity: 1 });
                 setScannedItemId(undefined);
               }}
-              className="rounded-md bg-slate-900 px-2 py-1 text-xs font-medium text-white hover:bg-slate-700"
+              className="rounded-md bg-slate-900 px-2 py-1 text-xs font-medium text-white transition-colors hover:bg-slate-700 active:scale-95"
             >
               Sell 1
             </button>
@@ -115,14 +136,14 @@ export function CounterPage() {
                 void submitTransaction({ itemId: scannedItemId, type: "restock", quantity: 1 });
                 setScannedItemId(undefined);
               }}
-              className="rounded-md border border-slate-300 px-2 py-1 text-xs font-medium text-slate-700 hover:bg-white"
+              className="rounded-md border border-slate-300 bg-white px-2 py-1 text-xs font-medium text-slate-700 transition-colors hover:bg-slate-50 active:scale-95"
             >
               Restock 1
             </button>
             <button
               type="button"
               onClick={() => setScannedItemId(undefined)}
-              className="text-xs text-slate-400 hover:text-slate-600"
+              className="text-xs text-indigo-400 hover:text-indigo-600"
             >
               Cancel
             </button>
@@ -144,12 +165,18 @@ export function CounterPage() {
       </section>
 
       <section className="mb-6">
-        <h2 className="mb-2 text-sm font-semibold text-slate-700">Pending queue</h2>
+        <h2 className="mb-2 flex items-center gap-1.5 text-sm font-semibold text-slate-700">
+          <BoxIcon className="h-4 w-4 text-slate-400" />
+          Pending queue
+        </h2>
         <QueueDrawer entries={state.queue} />
       </section>
 
       <section>
-        <h2 className="mb-2 text-sm font-semibold text-slate-700">Audit trail</h2>
+        <h2 className="mb-2 flex items-center gap-1.5 text-sm font-semibold text-slate-700">
+          <ClockHistoryIcon className="h-4 w-4 text-slate-400" />
+          Audit trail
+        </h2>
         <div className="mb-2 flex flex-wrap gap-2">
           {items.map((item) => (
             <button
