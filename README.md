@@ -10,8 +10,8 @@ with a minimal client, **StockSync Counter**, that exists to make the
 engine's correctness demonstrable on screen, not to be a sellable
 point-of-sale product.
 
-- **Live demo:** _TODO — add the deployed Amplify/API Gateway URL here
-  once the final clean-clone deploy (Phase 10) is verified._
+- **Live demo:** https://main.d18ash44o1uc8d.amplifyapp.com?shop_id=demo-shop&counter_id=counter_a
+  (open a second window with `counter_id=counter_b` to see the two-counter conflict scenario)
 - **Demo video:** _TODO — add the recorded demo video link here._
 
 ## The problem, in one paragraph
