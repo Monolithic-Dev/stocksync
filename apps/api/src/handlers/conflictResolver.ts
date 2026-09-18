@@ -217,7 +217,7 @@ async function maybeExplainPriceConflict(params: {
   // A second, follow-up push — the client already has both raw values
   // from the original push and renders "Generating explanation…" until
   // this one arrives (04-API-SPEC.md §2, edge case F-3).
-  await pushToShop(shopId, { ...wsPayload, ai_summary: explanation }).catch((error) => {
+  await pushToShop(shopId, { ...wsPayload, bedrock_explanation: explanation }).catch((error) => {
     logger.error("wsPush failed for the follow-up Bedrock explanation", { error, item_id: itemId });
   });
 }
@@ -286,7 +286,7 @@ function finalizeResult(params: {
         values: candidates.map((c) => ({ counter_id: c.counter_id, value: c.value, client_timestamp: c.client_timestamp })),
         // Bedrock's explanation is Phase 8's job — always null here, per
         // 04-API-SPEC.md §2's note that the UI must handle both states.
-        ai_summary: null,
+        bedrock_explanation: null,
         vector_clock: nextItem.vector_clock,
       },
     };

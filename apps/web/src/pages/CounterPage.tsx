@@ -40,6 +40,7 @@ export function CounterPage() {
   useWebSocketSync(shopId, counterId, isOnline);
 
   const [auditItemId, setAuditItemId] = useState<string | undefined>(undefined);
+  const [scannedItemId, setScannedItemId] = useState<string | undefined>(undefined);
 
   useEffect(() => {
     getSync(shopId, counterId)
@@ -88,10 +89,45 @@ export function CounterPage() {
       )}
 
       <section className="mb-4">
-        <BarcodeScanButton
-          items={items}
-          onResolved={(itemId) => void submitTransaction({ itemId, type: "sale", quantity: 1 })}
-        />
+        {/* Pre-fills the sell/restock choice per 13a's spec — a scan
+            resolves an item_id, it never assumes which action the
+            counter wants (or a quantity), so both remain the same
+            explicit clicks as picking the item from the list below. */}
+        <BarcodeScanButton items={items} onResolved={(itemId) => setScannedItemId(itemId)} />
+        {scannedItemId && (
+          <div className="mt-2 flex items-center gap-2 rounded-md border border-slate-300 bg-slate-50 p-2 text-sm">
+            <span className="flex-1 text-slate-700">
+              Scanned: <span className="font-medium">{items.find((item) => item.item_id === scannedItemId)?.name ?? scannedItemId}</span>
+            </span>
+            <button
+              type="button"
+              onClick={() => {
+                void submitTransaction({ itemId: scannedItemId, type: "sale", quantity: 1 });
+                setScannedItemId(undefined);
+              }}
+              className="rounded-md bg-slate-900 px-2 py-1 text-xs font-medium text-white hover:bg-slate-700"
+            >
+              Sell 1
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                void submitTransaction({ itemId: scannedItemId, type: "restock", quantity: 1 });
+                setScannedItemId(undefined);
+              }}
+              className="rounded-md border border-slate-300 px-2 py-1 text-xs font-medium text-slate-700 hover:bg-white"
+            >
+              Restock 1
+            </button>
+            <button
+              type="button"
+              onClick={() => setScannedItemId(undefined)}
+              className="text-xs text-slate-400 hover:text-slate-600"
+            >
+              Cancel
+            </button>
+          </div>
+        )}
       </section>
 
       <section className="mb-6 grid grid-cols-1 gap-3 sm:grid-cols-2">
@@ -99,6 +135,7 @@ export function CounterPage() {
           <ItemCard
             key={item.item_id}
             item={item}
+            highlighted={item.item_id === scannedItemId}
             onSell={(itemId) => void submitTransaction({ itemId, type: "sale", quantity: 1 })}
             onRestock={(itemId) => void submitTransaction({ itemId, type: "restock", quantity: 1 })}
             onFieldUpdate={(itemId, field, value) => void submitTransaction({ itemId, type: "field_update", field, value })}
