@@ -68,6 +68,7 @@ function reducer(state: ShopState, action: ShopAction): ShopState {
           ...(message.stock !== undefined ? { stock: message.stock } : {}),
           ...(message.price !== undefined ? { price: message.price } : {}),
           ...(message.shelf_location !== undefined ? { shelf_location: message.shelf_location } : {}),
+          ...(message.expiry_date !== undefined ? { expiry_date: message.expiry_date } : {}),
           ...(message.stock_anomaly !== undefined ? { stock_anomaly: message.stock_anomaly } : {}),
           field_last_writer: { ...existing.field_last_writer, ...(message.field_last_writer ?? {}) },
           conflict_status: "none",

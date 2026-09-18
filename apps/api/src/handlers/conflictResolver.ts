@@ -317,6 +317,7 @@ function finalizeResult(params: {
       stock: nextItem.stock,
       price: nextItem.price,
       shelf_location: nextItem.shelf_location,
+      expiry_date: nextItem.expiry_date,
       stock_anomaly: nextItem.stock_anomaly,
       field_last_writer: nextItem.field_last_writer,
       vector_clock: nextItem.vector_clock,

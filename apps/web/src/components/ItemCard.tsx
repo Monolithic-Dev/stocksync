@@ -72,6 +72,20 @@ export function ItemCard({ item, onSell, onRestock, onFieldUpdate }: ItemCardPro
             </dd>
           </>
         )}
+
+        {item.expiry_date !== undefined && (
+          <>
+            <dt className="text-slate-500">Expires</dt>
+            <dd className="flex items-center justify-end gap-1 text-right font-medium text-slate-900">
+              <EditableField
+                value={item.expiry_date}
+                testId="expiry-date-value"
+                onCommit={(value) => onFieldUpdate(item.item_id, "expiry_date", value)}
+              />
+              <AttributionBadge counterId={item.field_last_writer.expiry_date} />
+            </dd>
+          </>
+        )}
       </dl>
 
       <div className="mt-4 flex gap-2">

@@ -37,6 +37,7 @@ Serves AP-1 and AP-7.
 | `price` | Number | current price |
 | `shelf_location` | String | optional |
 | `supplier` | String | optional |
+| `expiry_date` | String | optional, ISO date (YYYY-MM-DD) — perishables only. Field-merged exactly like `price`/`shelf_location`; needed zero changes to `fieldMerge.ts` since it operates on field names generically (15b) |
 | `vector_clock` | Map | `{ [counter_id]: sequence_number }` |
 | `field_last_writer` | Map | `{ [field_name]: counter_id }` |
 | `conflict_status` | String | `none` \| `needs_review` |

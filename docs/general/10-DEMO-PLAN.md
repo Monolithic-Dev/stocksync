@@ -61,7 +61,11 @@ themselves, is convinced.
 **[2:40–3:00] Close**
 > "This isn't a point-of-sale app — it's the sync engine underneath one.
 > Any offline-tolerant system that shares a number across devices has
-> this exact problem, and most solve it badly or not at all."
+> this exact problem, and most solve it badly or not at all. And because
+> that audit trail is a real, tamper-evident record of a shop's actual
+> sales — something most small Indian retailers don't have today — it's
+> a more honest starting point for credit access than what most lenders
+> can see about a shop right now."
 
 ---
 

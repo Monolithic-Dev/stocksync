@@ -16,6 +16,7 @@ function toSyncItem(item: InventoryRecordItem): SyncItem {
     price: item.price,
     shelf_location: item.shelf_location,
     supplier: item.supplier,
+    expiry_date: item.expiry_date,
     field_last_writer: item.field_last_writer ?? {},
     conflict_status: item.conflict_status,
     // Not shown in 04-API-SPEC.md's example (which only illustrates a

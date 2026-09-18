@@ -150,3 +150,51 @@ proves it — not a full point-of-sale product. See
 in and out of scope, and §14/`docs/general/11-PHASED-SCOPE.md` for the
 platform-layer roadmap (multi-tenant CRUD, checkout, analytics,
 notifications, expanded AI features) beyond this core.
+
+## Where this goes next
+
+The sync engine is the core; everything below is real, well-reasoned
+future scope we chose to name rather than half-build under demo-day time
+pressure:
+
+- **A verifiable credit history for shops that don't have one.** Most
+  small Indian retailers run on cash and memory, with no formal record a
+  lender could ever assess. StockSync's audit trail is, by construction,
+  a timestamped, tamper-evident log of real transactions — not a lending
+  product, but a far more honest starting point for creditworthiness
+  than what most lenders can see about a shop like this today.
+- **Collective demand signals across shops.** A single shop has no
+  leverage with a supplier. If several nearby shops are all running low
+  on the same item at once — which our per-shop analytics already
+  detects — that's real aggregate demand worth a supplier's attention.
+  We don't aggregate across shops today; doing it responsibly needs real
+  design work (opt-in consent, no cross-shop data leakage), but the
+  per-shop signal that would feed it already exists.
+- **Cross-shop stock transfers**, where a transfer is simultaneously a
+  decrement at the source and an increment at the destination, and both
+  must stay atomic and conflict-safe even if both locations are offline
+  at once — a genuinely hard extension of the same CRDT core, for a
+  multi-location franchise.
+- **Cognito-based multi-tenant auth**, real roles (owner/manager/counter
+  staff) in place of the hardcoded demo counter identities.
+- **An owner-facing analytics dashboard** (daily sales/revenue rollup,
+  plus a trust-score headline metric reframing the conflict rate as a
+  business signal, not just an internal correctness number).
+- **Low-stock and conflict notifications** via email/SMS, or natively via
+  WhatsApp (AWS End User Messaging Social) once Meta's template approval
+  is in place.
+- **A natural-language shop-query assistant** and **Bedrock-driven
+  reorder alerts**, both grounded in real DynamoDB data, never a guess.
+- **Voice-based transaction entry** for counter staff mid-rush.
+- **QR "sneakernet" sync** — a device with zero connectivity (not just
+  offline from the cloud) hands its queued transactions to a nearby
+  connected device via a QR code, no pairing required. The most literal
+  possible demonstration that origin and order don't matter to this
+  engine, only the math does.
+- **Computer-vision shelf reconciliation** — an optional photo-based
+  stock estimate as a third, physical signal alongside what two devices
+  claim, always advisory, never auto-correcting.
+- **An icon-only, low-literacy UI mode** for counter operators who may
+  not read fluently in any language.
+- **Multi-environment CDK stacks** (dev/staging/prod) with a CI/CD
+  approval gate.

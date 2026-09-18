@@ -104,6 +104,8 @@ export interface SyncItem {
   price?: number;
   shelf_location?: string;
   supplier?: string;
+  /** ISO date (YYYY-MM-DD). Field-level merged like price/shelf_location — no new conflict-resolution logic (15b). */
+  expiry_date?: string;
   field_last_writer: Record<string, string>;
   conflict_status: "none" | "needs_review";
   conflict_candidates?: ConflictCandidatesDTO;
@@ -149,6 +151,7 @@ export type WsPushMessage =
       stock?: number;
       price?: number;
       shelf_location?: string;
+      expiry_date?: string;
       stock_anomaly?: boolean;
       field_last_writer?: Record<string, string>;
       vector_clock: VectorClock;
