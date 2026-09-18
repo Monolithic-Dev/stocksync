@@ -23,6 +23,10 @@ const syncBody = {
 };
 
 beforeEach(() => {
+  // These tests exercise the counter view directly, the same way a real
+  // shareable demo link does (README's ?shop_id=&counter_id= pattern) —
+  // App.tsx's landing-page gate is covered separately in HeroPage.test.tsx.
+  window.history.pushState({}, "", "/?shop_id=demo-shop&counter_id=counter_a");
   vi.stubGlobal("fetch", vi.fn().mockResolvedValue(jsonResponse(syncBody)));
   // App never opens a real socket in this environment — WebSocket isn't
   // polyfilled by jsdom, so useWebSocketSync's calls to `new WebSocket()`
@@ -71,5 +75,28 @@ describe("App", () => {
     await waitFor(async () => {
       expect(await listPending()).toHaveLength(1);
     });
+  });
+});
+
+describe("App — landing gate", () => {
+  it("shows the landing page for a bare visit, and entering a counter loads its data", async () => {
+    window.history.pushState({}, "", "/");
+    const user = userEvent.setup();
+    render(<App />);
+
+    expect(screen.getByRole("heading", { name: /inventory that never loses a sale/i })).toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: /counter a/i }));
+
+    expect(await screen.findByText("Parle-G 100g")).toBeInTheDocument();
+    expect(window.location.search).toBe("?shop_id=demo-shop&counter_id=counter_a");
+  });
+
+  it("a direct link carrying shop_id and counter_id skips the landing page", async () => {
+    window.history.pushState({}, "", "/?shop_id=demo-shop&counter_id=counter_b");
+    render(<App />);
+
+    expect(await screen.findByText("Parle-G 100g")).toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: /inventory that never loses a sale/i })).not.toBeInTheDocument();
   });
 });
