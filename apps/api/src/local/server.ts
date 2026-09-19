@@ -90,6 +90,7 @@ async function main(): Promise<void> {
   const { handler: categoriesCrudHandler } = await import("../handlers/categoriesCrud");
   const { handler: suppliersCrudHandler } = await import("../handlers/suppliersCrud");
   const { handler: checkoutHandler } = await import("../handlers/checkout");
+  const { handler: dashboardQueryHandler } = await import("../handlers/dashboardQuery");
   const { sqs } = await import("../lib/sqs");
 
   // ---- WebSocket: $connect / $disconnect + the raw connections used by
@@ -277,6 +278,11 @@ async function main(): Promise<void> {
   app.post("/checkout", async (req, res) => {
     const event = { body: JSON.stringify(req.body) } as APIGatewayProxyEventV2;
     send(res, await checkoutHandler(event));
+  });
+
+  app.get("/dashboard", async (req, res) => {
+    const event = { queryStringParameters: req.query } as unknown as APIGatewayProxyEventV2;
+    send(res, await dashboardQueryHandler(event));
   });
 
   app.listen(HTTP_PORT, () => {

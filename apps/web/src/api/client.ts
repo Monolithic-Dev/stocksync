@@ -200,6 +200,22 @@ export async function postCheckout(
   return (await response.json()) as CheckoutResponse;
 }
 
+export interface DashboardResponse {
+  revenue: { total: number; order_count: number; average_order_value: number; last_7_days: number };
+  low_stock: { item_id: string; name?: string; stock: number }[];
+  trust_score: { percent: number; total_items: number; items_with_open_conflict: number };
+}
+
+/** GET /dashboard — owner/manager only (server enforces via authContext.ts's canViewDashboard). */
+export async function getDashboard(shopId: string): Promise<DashboardResponse> {
+  const params = new URLSearchParams({ shop_id: shopId });
+  const response = await fetch(`${API_BASE_URL}/dashboard?${params.toString()}`, { headers: headers() });
+  if (!response.ok) {
+    throw new Error(`GET /dashboard failed: ${response.status}`);
+  }
+  return (await response.json()) as DashboardResponse;
+}
+
 export interface StaffInviteResponse {
   email: string;
   role: "manager" | "counter_staff";
