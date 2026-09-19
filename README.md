@@ -10,8 +10,10 @@ with a minimal client, **StockSync Counter**, that exists to make the
 engine's correctness demonstrable on screen, not to be a sellable
 point-of-sale product.
 
-- **Live demo:** https://main.d18ash44o1uc8d.amplifyapp.com?shop_id=demo-shop&counter_id=counter_a
-  (open a second window with `counter_id=counter_b` to see the two-counter conflict scenario)
+- **Live demo:** https://main.d18ash44o1uc8d.amplifyapp.com
+  (sign up to create a shop, or sign in to an existing one — shop identity now comes from your
+  Cognito account, not a URL query param; open a second window signed into the same shop to see
+  the two-counter conflict scenario)
 - **Demo video:** _TODO — add the recorded demo video link here._
 
 ## The problem, in one paragraph
@@ -151,11 +153,31 @@ in and out of scope, and §14/`docs/general/11-PHASED-SCOPE.md` for the
 platform-layer roadmap (multi-tenant CRUD, checkout, analytics,
 notifications, expanded AI features) beyond this core.
 
+## Beyond the core sync engine — also shipped
+
+The sync engine above is the hackathon-judged core. On top of it, this build
+also ships a complete product layer:
+
+- **Real Cognito authentication**, with owner/manager/counter_staff roles.
+  Self-signup creates a shop and makes the signer its owner; owners invite
+  managers and counter staff. Every API route sits behind a JWT authorizer,
+  and `shop_id` always comes from the verified token, never the client.
+- **An owner-facing analytics dashboard** — daily sales/revenue rollups and
+  a trust-score headline metric that reframes the conflict rate as a
+  business signal, not just an internal correctness number.
+- **Low-stock and conflict-review email notifications** via Amazon SES,
+  triggered off the same DynamoDB Streams the sync engine already writes to,
+  sent to the shop's owner automatically.
+- **Dark mode, toast notifications, and loading skeletons** across the
+  whole client, for a UI that doesn't feel like a hackathon demo.
+- Products/categories/suppliers CRUD and a checkout flow that reuses the
+  exact same write-intake pipeline as a manual sale — see `19b` in
+  [`docs/general/11-PHASED-SCOPE.md`](docs/general/11-PHASED-SCOPE.md).
+
 ## Where this goes next
 
-The sync engine is the core; everything below is real, well-reasoned
-future scope we chose to name rather than half-build under demo-day time
-pressure:
+Everything below is real, well-reasoned future scope we chose to name
+rather than half-build under demo-day time pressure:
 
 - **A verifiable credit history for shops that don't have one.** Most
   small Indian retailers run on cash and memory, with no formal record a
@@ -175,14 +197,8 @@ pressure:
   must stay atomic and conflict-safe even if both locations are offline
   at once — a genuinely hard extension of the same CRDT core, for a
   multi-location franchise.
-- **Cognito-based multi-tenant auth**, real roles (owner/manager/counter
-  staff) in place of the hardcoded demo counter identities.
-- **An owner-facing analytics dashboard** (daily sales/revenue rollup,
-  plus a trust-score headline metric reframing the conflict rate as a
-  business signal, not just an internal correctness number).
-- **Low-stock and conflict notifications** via email/SMS, or natively via
-  WhatsApp (AWS End User Messaging Social) once Meta's template approval
-  is in place.
+- **Notifications beyond email** — SMS, or natively via WhatsApp (AWS End
+  User Messaging Social) once Meta's template approval is in place.
 - **A natural-language shop-query assistant** and **Bedrock-driven
   reorder alerts**, both grounded in real DynamoDB data, never a guess.
 - **Voice-based transaction entry** for counter staff mid-rush.

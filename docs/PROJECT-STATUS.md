@@ -4,7 +4,7 @@ Last updated: 2026-09-19. This is a living snapshot, not a one-time report — u
 
 ## TL;DR
 
-Tier 1 (the entire originally-judged scope) plus differentiator features (13a, 13b, 15b), the Tier 2 platform layer (19b — products/categories/suppliers CRUD + checkout), and real Cognito authentication with owner/manager/counter_staff roles are built, tested, and **deployed live on real AWS** (account `509399625129`, `us-east-1`) — backend confirmed end-to-end with real transactions, frontend confirmed loading real data in a real browser, and the API confirmed rejecting unauthenticated requests (`401`). The project is now expanding beyond the original hackathon scope toward a complete product: an owner analytics dashboard and notifications are in progress.
+Tier 1 (the entire originally-judged scope) plus differentiator features (13a, 13b, 15b), the Tier 2 platform layer (19b — products/categories/suppliers CRUD + checkout), real Cognito authentication with owner/manager/counter_staff roles, an owner-facing analytics dashboard, SES email notifications, and full visual polish (dark mode, toasts, loading skeletons) are all built, tested, and **deployed live on real AWS** (account `509399625129`, `us-east-1`) — backend confirmed end-to-end with real transactions, frontend confirmed loading real data in a real browser, and the API confirmed rejecting unauthenticated requests (`401`). The project has now fully expanded beyond the original hackathon scope into a complete product; what remains is demo prep (see "Next steps" below), not further build-out.
 
 ### Live deployment reference
 
@@ -53,14 +53,14 @@ A plaintext AWS credentials CSV was found sitting **untracked** in `docs/general
 
 Root `.env.example` documents every AWS credential the project needs, lists exactly which AWS services the stack requires, and lists every CDK-output resource name the local scripts need. `seed-demo-data.ts`/`reset-demo.ts`/`simulate-conflict.ts` auto-load `.env.local` via `dotenv` (silently no-ops if absent, so local-only dev is unaffected).
 
-## In progress — building toward a complete product
+## Complete-product build-out — done
 
-Per explicit direction to expand well beyond the original hackathon-judged scope:
+Per explicit direction to expand well beyond the original hackathon-judged scope, all four items are now done and deployed live:
 
-1. ~~Real authentication (Cognito)~~ — **done, deployed live** (see above).
-2. **Owner-facing analytics dashboard** — sales/revenue rollups, low-stock alerts, and the conflict rate reframed as a trust-score business signal.
-3. **Notifications** — low-stock and conflict alerts via email (SES).
-4. **Visual/design polish** — dark mode, toast notifications, loading skeletons.
+1. ~~Real authentication (Cognito)~~ — **done** (PR #16's prerequisite work, deployed earlier).
+2. ~~Owner-facing analytics dashboard~~ — **done** (PR #16, merged and deployed) — sales/revenue rollups, low-stock alerts, and the conflict rate reframed as a trust-score business signal.
+3. ~~Notifications~~ — **done** (PR #17, merged and deployed) — low-stock and conflict-review alerts via SES, triggered off `inventory_records`' DynamoDB Stream. **Outstanding action item:** the sender identity `kisore2004@gmail.com` is still `PENDING` SES sandbox verification — click the verification link AWS emailed before relying on live alert delivery in the demo.
+4. ~~Visual/design polish~~ — **done** (PR #18, merged and deployed) — dark mode, toast notifications, loading skeletons, across the whole client.
 
 ## Known gaps
 
@@ -72,13 +72,12 @@ Per explicit direction to expand well beyond the original hackathon-judged scope
 | Demo video not recorded | Needs a human following `docs/general/10-DEMO-PLAN.md`'s script | You |
 | Web bundle is ~620KB+ post-barcode-library | Not investigated — `@zxing/browser` is a sizeable dependency for one feature | Worth a code-split pass |
 | 15a (chaos demo) not rehearsed | Needs a live Lambda to throttle via the AWS Console | Rehearse once the other phases land — see the demo plan's placeholder beat |
-| `docs/general/10-DEMO-PLAN.md` still describes the old `?shop_id=&counter_id=` shareable-link flow as the entry point | Written before Cognito auth landed; the real flow now starts with sign-up/sign-in (`AuthPanel`), then a counter-only picker | Update the demo plan's script to start from sign-in before recording |
 | `scripts/seed-demo-data.ts`/`reset-demo.ts` write directly to DynamoDB, bypassing Cognito | They predate auth and aren't part of the request path auth protects | Fine as-is for engine-level testing; a real demo needs a real signed-up account whose `shop_id` matches the seeded data, or seed data scoped to that account's actual `shop_id` |
 
 ## Next steps, in order
 
-1. Finish the remaining in-progress build-out above (dashboard, notifications, polish).
+1. Click the SES verification link for `kisore2004@gmail.com` (blocks live alert email demos).
 2. Recheck Bedrock access on both accounts.
-3. Update `10-DEMO-PLAN.md`'s script to start from real sign-in, then rehearse the full core scenario against the real deployed stack, 5+ times, including the new CRUD/checkout/auth flows.
+3. Rehearse the full core scenario against the real deployed stack per `10-DEMO-PLAN.md` (now updated to start from real sign-in), 5+ times, including the new CRUD/checkout/auth flows.
 4. Confirm the CloudWatch dashboard shows real, non-zero data.
-5. Record the demo, fill in the remaining README/blog-post TODOs, submit.
+5. Record the demo, fill in the remaining README demo-video TODO, submit.
