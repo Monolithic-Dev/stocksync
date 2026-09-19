@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { BrowserMultiFormatReader } from "@zxing/browser";
 import type { DisplayItem } from "../state/ShopContext";
+import { AlertTriangleIcon, ScanIcon } from "./icons";
 
 export interface BarcodeScanButtonProps {
   items: DisplayItem[];
@@ -65,12 +66,12 @@ export function BarcodeScanButton({ items, onResolved }: BarcodeScanButtonProps)
 
   if (state === "scanning") {
     return (
-      <div className="rounded-md border border-slate-300 p-2">
-        <video ref={videoRef} data-testid="scan-video" className="w-full rounded" muted playsInline />
+      <div className="rounded-lg border border-indigo-200 bg-indigo-50/50 p-2">
+        <video ref={videoRef} data-testid="scan-video" className="w-full rounded-md" muted playsInline />
         <button
           type="button"
           onClick={() => setState("idle")}
-          className="mt-2 text-xs text-slate-500 hover:text-slate-700"
+          className="mt-2 text-xs font-medium text-slate-500 hover:text-slate-700"
         >
           Cancel
         </button>
@@ -83,17 +84,20 @@ export function BarcodeScanButton({ items, onResolved }: BarcodeScanButtonProps)
       <button
         type="button"
         onClick={() => setState("scanning")}
-        className="rounded-md border border-slate-300 px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
+        className="flex items-center gap-1.5 rounded-md border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-700 transition-colors hover:border-indigo-300 hover:bg-indigo-50 hover:text-indigo-700"
       >
+        <ScanIcon className="h-4 w-4" />
         Scan barcode/QR
       </button>
       {state === "not_recognized" && (
-        <p data-testid="scan-not-recognized" className="mt-1 text-xs text-amber-700">
+        <p data-testid="scan-not-recognized" className="mt-1.5 flex items-center gap-1 text-xs text-amber-700">
+          <AlertTriangleIcon className="h-3 w-3 shrink-0" />
           Item not recognized — pick it from the list below instead.
         </p>
       )}
       {state === "permission_denied" && (
-        <p data-testid="scan-permission-denied" className="mt-1 text-xs text-rose-700">
+        <p data-testid="scan-permission-denied" className="mt-1.5 flex items-center gap-1 text-xs text-rose-700">
+          <AlertTriangleIcon className="h-3 w-3 shrink-0" />
           Camera access denied — pick the item from the list below instead.
         </p>
       )}
