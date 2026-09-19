@@ -294,8 +294,8 @@ dead connection never aborts the rest.
 no model hosting or training.
 
 **What we use it for:** exactly one narrow thing — when two counters set
-different **prices**, the conflict-resolver calls Claude 3 Haiku
-(`anthropic.claude-3-haiku-20240307-v1:0`) with both values, who set them,
+different **prices**, the conflict-resolver calls Claude Haiku 4.5
+(`anthropic.claude-haiku-4-5-20251001-v1:0`) with both values, who set them,
 and roughly how long they were both offline, and asks for a 1–2 sentence
 plain-language explanation shown next to the raw values.
 

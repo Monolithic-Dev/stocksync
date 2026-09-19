@@ -71,3 +71,7 @@ Both fixes verified: build, lint, and all 130 tests still pass after the change.
 2. Rehearse the full core scenario (`docs/general/10-DEMO-PLAN.md`) against the real deployed stack, 5+ times.
 3. Confirm the CloudWatch dashboard shows real, non-zero data (it will, once the above rehearsals generate traffic).
 4. Record the demo, fill in the remaining README/blog-post TODO (video link), submit.
+
+## Pending redeploy — Phase 19b, `.env.example`, explainer doc
+
+The live stack predates these changes. Merged to `main` but **not yet deployed**: 4 new tables (`products` w/ `CategoryIndex`, `categories`, `suppliers`, `orders`), 4 new Lambdas (products/categories/suppliers CRUD + `checkout`), the `/products` `/categories` `/suppliers` `/checkout` routes, and the Products/Checkout pages. The deployed stack currently has 4 tables and 8 Lambdas; with 19b it becomes 8 tables and 11 Lambdas. Redeploy = `cd infra/cdk && npx cdk deploy` (adds the new resources, leaves existing ones alone), rebuild + re-upload the Amplify bundle, then re-run `npm run seed:demo` with `PRODUCTS_TABLE_NAME`/`CATEGORIES_TABLE_NAME`/`SUPPLIERS_TABLE_NAME` set to seed the catalog. Full architecture and AWS-service walkthrough: `docs/general/17-HOW-STOCKSYNC-WORKS.md`.
