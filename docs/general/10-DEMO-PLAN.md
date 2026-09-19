@@ -9,9 +9,11 @@ themselves, is convinced.
 
 ## 1. The Setup
 
-- Two browser windows side by side, clearly labeled "Counter A" and
-  "Counter B," each running StockSync Counter, both showing the same
-  seeded item (e.g. "Parle-G 100g, Stock: 50").
+- Sign in to the same shop's account in two browser windows side by side —
+  the shared identity now comes from Cognito, not a URL query param — then
+  pick "Counter A" in one and "Counter B" in the other from the post-login
+  counter picker. Both should land on the same seeded item (e.g. "Parle-G
+  100g, Stock: 50").
 - A third panel/tab ready to switch to: the audit log for that item.
 - Each window's in-UI network toggle visible and ready to click — not a
   DevTools trick, a real control built into the product.
