@@ -12,12 +12,22 @@ function ThemeProbe() {
   );
 }
 
+function clearStoredTheme(): void {
+  try {
+    window.localStorage.clear();
+  } catch {
+    // Unavailable in some environments (see ThemeContext.tsx) — nothing to clear.
+  }
+}
+
 beforeEach(() => {
   document.documentElement.classList.remove("dark");
+  clearStoredTheme();
 });
 
 afterEach(() => {
   document.documentElement.classList.remove("dark");
+  clearStoredTheme();
   vi.unstubAllGlobals();
 });
 
