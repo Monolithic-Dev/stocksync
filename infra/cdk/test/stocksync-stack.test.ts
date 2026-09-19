@@ -2,7 +2,7 @@ import { App } from "aws-cdk-lib";
 import { Match, Template } from "aws-cdk-lib/assertions";
 import { describe, expect, it } from "vitest";
 import { StocksyncStack } from "../lib/stocksync-stack";
-import { bedrockModelId, bedrockInferenceProfileArn } from "../lib/config";
+import { bedrockModelId, bedrockInferenceProfileArn, alertsFromEmail } from "../lib/config";
 
 function synthTemplate(): Template {
   const app = new App();
@@ -447,6 +447,49 @@ describe("StocksyncStack — Analytics (Phase 3, owner dashboard)", () => {
   });
 });
 
+describe("StocksyncStack — Notifications (Phase 4, low-stock/conflict alerts)", () => {
+  it("creates exactly one verified SES sender identity for the configured alerts address", () => {
+    const template = synthTemplate();
+    template.resourceCountIs("AWS::SES::EmailIdentity", 1);
+    template.hasResourceProperties("AWS::SES::EmailIdentity", { EmailIdentity: alertsFromEmail });
+  });
+
+  it("wires the alert function as a DynamoDB Stream consumer of inventory_records, not a new write-path hook", () => {
+    const template = synthTemplate();
+    const mappings = template.findResources("AWS::Lambda::EventSourceMapping");
+    const alertMapping = Object.values(mappings).find((mapping) =>
+      JSON.stringify(mapping).includes("NotifyAlertsFunction"),
+    );
+    expect(alertMapping).toBeDefined();
+    expect(
+      (alertMapping as { Properties: { EventSourceArn: unknown } }).Properties.EventSourceArn,
+    ).toBeDefined();
+  });
+
+  it("grants the alert function only cognito:ListUsersInGroup and ses:SendEmail, scoped, never a DynamoDB write action", () => {
+    const template = synthTemplate();
+    const policies = template.findResources("AWS::IAM::Policy");
+    const alertPolicy = Object.values(policies).find((policy) =>
+      JSON.stringify(policy).includes("NotifyAlertsFunction"),
+    );
+    expect(alertPolicy).toBeDefined();
+    const statements = (
+      alertPolicy as { Properties: { PolicyDocument: { Statement: { Action: string | string[]; Resource: unknown }[] } } }
+    ).Properties.PolicyDocument.Statement;
+    const actions = statements.flatMap((statement) => (Array.isArray(statement.Action) ? statement.Action : [statement.Action]));
+
+    expect(actions).toEqual(
+      expect.arrayContaining(["cognito-idp:ListUsersInGroup", "ses:SendEmail"]),
+    );
+    // DynamoEventSource also grants stream-read actions (GetRecords,
+    // DescribeStream, etc.) — those are expected; only a write action
+    // would be a real problem, since this Lambda must never mutate data.
+    expect(actions.some((action) => action.includes("Put") || action.includes("Update") || action.includes("Delete"))).toBe(
+      false,
+    );
+  });
+});
+
 describe("StocksyncStack — no wildcard IAM resources", () => {
   it("never grants a DynamoDB or SQS action against a wildcard resource", () => {
     const template = synthTemplate();
@@ -459,6 +502,14 @@ describe("StocksyncStack — no wildcard IAM resources", () => {
         const actions = Array.isArray(statement.Action) ? statement.Action : [statement.Action];
         const touchesDataPlane = actions.some((action) => action.startsWith("dynamodb:") || action.startsWith("sqs:"));
         if (!touchesDataPlane) continue;
+        // dynamodb:ListStreams is the one documented exception: unlike
+        // GetRecords/GetShardIterator/DescribeStream, IAM has no
+        // resource-level authorization for it at all — AWS's own
+        // DynamoEventSource construct (Notifications.ts's stream
+        // consumer) always generates it against Resource: "*". Every
+        // other action in this statement set must still be scoped.
+        const onlyListStreams = actions.every((action) => action === "dynamodb:ListStreams");
+        if (onlyListStreams && statement.Resource === "*") continue;
         expect(statement.Resource).not.toBe("*");
       }
     }

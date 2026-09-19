@@ -9,6 +9,7 @@ import { RealtimeApi } from "./constructs/RealtimeApi";
 import { Observability } from "./constructs/Observability";
 import { PlatformCrud } from "./constructs/PlatformCrud";
 import { Analytics } from "./constructs/Analytics";
+import { Notifications } from "./constructs/Notifications";
 
 export class StocksyncStack extends Stack {
   constructor(scope: Construct, id: string, props?: StackProps) {
@@ -80,6 +81,14 @@ export class StocksyncStack extends Stack {
       authorizer: auth.authorizer,
       inventoryRecordsTable: dataLayer.inventoryRecordsTable,
       ordersTable: platformCrud.ordersTable,
+    });
+
+    // Low-stock/conflict email alerts — consumes inventory_records' stream
+    // (already enabled, previously unused; real-time push to clients goes
+    // through wsPush.ts's direct call from conflictResolver.ts instead).
+    new Notifications(this, "Notifications", {
+      inventoryRecordsTable: dataLayer.inventoryRecordsTable,
+      userPool: auth.userPool,
     });
   }
 }

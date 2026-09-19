@@ -29,3 +29,12 @@ export const bedrockCrossAccountId = "368339042048";
 export const bedrockCrossAccountRegion = "us-east-1";
 export const bedrockInferenceProfileArn =
   `arn:aws:bedrock:${bedrockCrossAccountRegion}:${bedrockCrossAccountId}:inference-profile/us.${bedrockModelId}`;
+
+// Phase 4 (notifications): the verified SES sender identity for low-stock/
+// conflict alert emails. SES starts every new account in sandbox mode,
+// where both the sender AND every recipient must be verified individually
+// — using the same address for both keeps this deployable without a
+// production-access request. Real per-shop delivery (a different owner's
+// inbox) only succeeds once this account exits sandbox, same kind of
+// account-level gate as the Bedrock approval above.
+export const alertsFromEmail = "kisore2004@gmail.com";
