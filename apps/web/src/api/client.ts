@@ -1,4 +1,13 @@
-import type { AuditHistoryEntry, SyncItem, TransactionInput, TransactionResultDTO, WsPushMessage } from "@stocksync/core";
+import type {
+  AuditHistoryEntry,
+  Category,
+  Product,
+  Supplier,
+  SyncItem,
+  TransactionInput,
+  TransactionResultDTO,
+  WsPushMessage,
+} from "@stocksync/core";
 
 // Vite exposes only VITE_-prefixed env vars to client code. Falling back to
 // "" keeps local dev usable before a real API Gateway URL is configured —
@@ -103,6 +112,81 @@ export async function postConflictResolve(
     throw new Error(`POST /conflicts/${itemId}/resolve failed: ${response.status}`);
   }
   return (await response.json()) as ConflictResolveResponse;
+}
+
+// ---- Tier 2 CRUD (19b, 04-API-SPEC.md §5.1) — one thin client per
+// resource, all built on the same shape since products/categories/
+// suppliers share an identical REST pattern server-side (crudTable.ts). ----
+
+function crudApi<T>(resourcePath: string) {
+  return {
+    list: async (shopId: string, extraParams: Record<string, string> = {}): Promise<T[]> => {
+      const params = new URLSearchParams({ shop_id: shopId, ...extraParams });
+      const response = await fetch(`${API_BASE_URL}/${resourcePath}?${params.toString()}`, { headers: headers() });
+      if (!response.ok) throw new Error(`GET /${resourcePath} failed: ${response.status}`);
+      const { items } = (await response.json()) as { items: T[] };
+      return items;
+    },
+    create: async (shopId: string, fields: Partial<T>): Promise<T> => {
+      const response = await fetch(`${API_BASE_URL}/${resourcePath}`, {
+        method: "POST",
+        headers: headers(),
+        body: JSON.stringify({ shop_id: shopId, ...fields }),
+      });
+      if (!response.ok) throw new Error(`POST /${resourcePath} failed: ${response.status}`);
+      return (await response.json()) as T;
+    },
+    update: async (shopId: string, id: string, fields: Partial<T>): Promise<T> => {
+      const response = await fetch(`${API_BASE_URL}/${resourcePath}/${encodeURIComponent(id)}`, {
+        method: "PUT",
+        headers: headers(),
+        body: JSON.stringify({ shop_id: shopId, ...fields }),
+      });
+      if (!response.ok) throw new Error(`PUT /${resourcePath}/${id} failed: ${response.status}`);
+      return (await response.json()) as T;
+    },
+    remove: async (shopId: string, id: string): Promise<void> => {
+      const params = new URLSearchParams({ shop_id: shopId });
+      const response = await fetch(`${API_BASE_URL}/${resourcePath}/${encodeURIComponent(id)}?${params.toString()}`, {
+        method: "DELETE",
+        headers: headers(),
+      });
+      if (!response.ok) throw new Error(`DELETE /${resourcePath}/${id} failed: ${response.status}`);
+    },
+  };
+}
+
+export const productsApi = crudApi<Product>("products");
+export const categoriesApi = crudApi<Category>("categories");
+export const suppliersApi = crudApi<Supplier>("suppliers");
+
+export interface CheckoutLineItem {
+  product_id: string;
+  quantity: number;
+  unit_price: number;
+}
+
+export interface CheckoutResponse {
+  order_id: string;
+  total_amount: number;
+  status: "completed";
+}
+
+/** POST /checkout (19b, 04-API-SPEC.md §5.2). */
+export async function postCheckout(
+  shopId: string,
+  counterId: string,
+  lineItems: CheckoutLineItem[],
+): Promise<CheckoutResponse> {
+  const response = await fetch(`${API_BASE_URL}/checkout`, {
+    method: "POST",
+    headers: headers(),
+    body: JSON.stringify({ shop_id: shopId, counter_id: counterId, line_items: lineItems }),
+  });
+  if (!response.ok) {
+    throw new Error(`POST /checkout failed: ${response.status}`);
+  }
+  return (await response.json()) as CheckoutResponse;
 }
 
 export function parseWsPushMessage(raw: string): WsPushMessage | undefined {

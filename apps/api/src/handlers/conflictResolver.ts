@@ -299,6 +299,10 @@ function finalizeResult(params: {
     // See the needs_review branch above for why these are here.
     current_vector_clock: priorItem?.vector_clock ?? {},
     incoming_vector_clock: message.client_vector_clock ?? {},
+    // Present only for a checkout line item (19b) — groups this entry
+    // with the order's other line items in the audit trail without
+    // introducing a second source of truth for what was sold.
+    ...(message.order_id ? { order_id: message.order_id } : {}),
   };
 
   return {

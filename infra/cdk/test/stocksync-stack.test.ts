@@ -11,9 +11,9 @@ function synthTemplate(): Template {
 }
 
 describe("StocksyncStack — DataLayer", () => {
-  it("creates exactly four on-demand DynamoDB tables", () => {
+  it("creates exactly eight on-demand DynamoDB tables (4 Tier-1 sync + 4 Tier-2 catalog/checkout)", () => {
     const template = synthTemplate();
-    template.resourceCountIs("AWS::DynamoDB::Table", 4);
+    template.resourceCountIs("AWS::DynamoDB::Table", 8);
     const tables = template.findResources("AWS::DynamoDB::Table");
     for (const table of Object.values(tables)) {
       expect((table as { Properties: { BillingMode: string } }).Properties.BillingMode).toBe("PAY_PER_REQUEST");
@@ -274,6 +274,58 @@ describe("StocksyncStack — Observability dashboard (Phase 9)", () => {
     expect(body).toContain("IdempotencyHitRate");
     expect(body).toContain("StockSync");
     expect(body).toContain("ApproximateNumberOfMessagesVisible");
+  });
+});
+
+describe("StocksyncStack — PlatformCrud (Tier 2, 19b)", () => {
+  it("creates the products table with a CategoryIndex GSI, plus categories/suppliers/orders tables", () => {
+    const template = synthTemplate();
+    template.hasResourceProperties("AWS::DynamoDB::Table", {
+      GlobalSecondaryIndexes: Match.arrayWith([
+        Match.objectLike({
+          IndexName: "CategoryIndex",
+          KeySchema: Match.arrayWith([Match.objectLike({ AttributeName: "category_id", KeyType: "HASH" })]),
+        }),
+      ]),
+    });
+    // 4 Tier-1 sync tables + products/categories/suppliers/orders = 8,
+    // already asserted above — this test only checks the CRUD tables'
+    // own shape (pk/sk + the one GSI), not the total count again.
+    const tables = template.findResources("AWS::DynamoDB::Table");
+    const withoutGsi = Object.values(tables).filter(
+      (table) => !(table as { Properties: { GlobalSecondaryIndexes?: unknown } }).Properties.GlobalSecondaryIndexes,
+    );
+    // inventory_records, write_dedup, audit_log, categories, suppliers,
+    // orders — every table except inventory_records (ShopConflictIndex),
+    // ws_connections (ShopConnectionsIndex) and products (CategoryIndex).
+    expect(withoutGsi.length).toBe(5);
+  });
+
+  it("exposes GET/POST /products, /categories, /suppliers and PUT/DELETE on their {x_id} routes", () => {
+    const template = synthTemplate();
+    for (const resource of ["products", "categories", "suppliers"]) {
+      template.hasResourceProperties("AWS::ApiGatewayV2::Route", { RouteKey: `GET /${resource}` });
+      template.hasResourceProperties("AWS::ApiGatewayV2::Route", { RouteKey: `POST /${resource}` });
+      const idParam = resource.replace(/s$/, "") + "_id";
+      template.hasResourceProperties("AWS::ApiGatewayV2::Route", { RouteKey: `PUT /${resource}/{${idParam}}` });
+      template.hasResourceProperties("AWS::ApiGatewayV2::Route", { RouteKey: `DELETE /${resource}/{${idParam}}` });
+    }
+  });
+
+  it("exposes POST /checkout, and grants the checkout function write_dedup read/write plus SQS send (same guarantees as write-intake)", () => {
+    const template = synthTemplate();
+    template.hasResourceProperties("AWS::ApiGatewayV2::Route", { RouteKey: "POST /checkout" });
+
+    const policies = template.findResources("AWS::IAM::Policy");
+    const checkoutPolicy = Object.values(policies).find((policy) => JSON.stringify(policy).includes("CheckoutFunction"));
+    expect(checkoutPolicy).toBeDefined();
+    const statements = (
+      checkoutPolicy as { Properties: { PolicyDocument: { Statement: { Action: string | string[] }[] } } }
+    ).Properties.PolicyDocument.Statement;
+    const actions = statements.flatMap((statement) => (Array.isArray(statement.Action) ? statement.Action : [statement.Action]));
+
+    expect(actions).toEqual(expect.arrayContaining(["sqs:SendMessage"]));
+    expect(actions.some((action) => action.startsWith("dynamodb:") && action.includes("Write"))).toBe(true);
   });
 });
 

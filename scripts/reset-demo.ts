@@ -13,7 +13,10 @@
  *   INVENTORY_RECORDS_TABLE_NAME=inventory_records_local AUDIT_LOG_TABLE_NAME=audit_log_local DYNAMODB_ENDPOINT=http://localhost:8200 npm run reset:demo
  */
 import { DeleteCommand, QueryCommand, type DynamoDBDocumentClient } from "@aws-sdk/lib-dynamodb";
+import { config } from "dotenv";
 import { ddbClientFromEnv, requireTableName, seedDemoData } from "./lib/demoData";
+
+config({ path: ".env.local" });
 
 const SHOP_ID = process.env.SHOP_ID ?? "demo-shop";
 const INVENTORY_TABLE = requireTableName("INVENTORY_RECORDS_TABLE_NAME");
