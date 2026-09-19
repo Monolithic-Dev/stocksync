@@ -2,7 +2,7 @@ import { App } from "aws-cdk-lib";
 import { Match, Template } from "aws-cdk-lib/assertions";
 import { describe, expect, it } from "vitest";
 import { StocksyncStack } from "../lib/stocksync-stack";
-import { bedrockModelId } from "../lib/config";
+import { bedrockModelId, bedrockInferenceProfileArn } from "../lib/config";
 
 function synthTemplate(): Template {
   const app = new App();
@@ -231,6 +231,30 @@ describe("StocksyncStack — Bedrock price-conflict explainer (Phase 8)", () => 
       Properties: { Environment: { Variables: { BEDROCK_MODEL_ID: bedrockModelId } } },
     });
     expect(Object.keys(fn).length).toBeGreaterThan(0);
+  });
+
+  it("creates a Secrets Manager secret for the cross-account Bedrock credentials and grants the conflict-resolver read access", () => {
+    const template = synthTemplate();
+    template.resourceCountIs("AWS::SecretsManager::Secret", 1);
+
+    const policies = template.findResources("AWS::IAM::Policy");
+    const secretReadPolicy = Object.values(policies).find(
+      (policy) =>
+        JSON.stringify(policy).includes("ConflictResolverFunction") &&
+        JSON.stringify(policy).includes("secretsmanager:GetSecretValue"),
+    );
+    expect(secretReadPolicy).toBeDefined();
+  });
+
+  it("passes the conflict-resolver the cross-account inference-profile ARN and the credentials secret's ARN", () => {
+    const template = synthTemplate();
+    const fn = template.findResources("AWS::Lambda::Function", {
+      Properties: { Environment: { Variables: { BEDROCK_INFERENCE_PROFILE_ARN: bedrockInferenceProfileArn } } },
+    });
+    expect(Object.keys(fn).length).toBeGreaterThan(0);
+
+    const [resolverFn] = Object.values(fn) as { Properties: { Environment: { Variables: Record<string, unknown> } } }[];
+    expect(resolverFn.Properties.Environment.Variables.BEDROCK_CREDENTIALS_SECRET_ARN).toBeDefined();
   });
 });
 

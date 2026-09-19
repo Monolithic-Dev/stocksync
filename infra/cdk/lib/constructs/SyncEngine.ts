@@ -6,8 +6,9 @@ import { Runtime } from "aws-cdk-lib/aws-lambda";
 import { NodejsFunction } from "aws-cdk-lib/aws-lambda-nodejs";
 import { SqsEventSource } from "aws-cdk-lib/aws-lambda-event-sources";
 import { Queue } from "aws-cdk-lib/aws-sqs";
+import { Secret } from "aws-cdk-lib/aws-secretsmanager";
 import { Construct } from "constructs";
-import { bedrockModelId } from "../config";
+import { bedrockModelId, bedrockInferenceProfileArn } from "../config";
 
 export interface SyncEngineProps {
   readonly writeDedupTable: Table;
@@ -31,6 +32,14 @@ export class SyncEngine extends Construct {
 
   constructor(scope: Construct, id: string, props: SyncEngineProps) {
     super(scope, id);
+
+    // Holds the second AWS account's static credentials used for the
+    // cross-account Bedrock workaround (see config.ts). CDK owns the
+    // resource and its access grant; the actual value is populated
+    // out-of-band via `aws secretsmanager put-secret-value`, never here.
+    const bedrockCredentialsSecret = new Secret(this, "BedrockCrossAccountCredentials", {
+      description: "Access key for the AWS account used to call Bedrock (the deployment account is blocked by an Anthropic use-case approval gate)",
+    });
 
     this.deadLetterQueue = new Queue(this, "DeadLetterQueue", {
       fifo: true,
@@ -80,6 +89,12 @@ export class SyncEngine extends Construct {
         WRITE_DEDUP_TABLE_NAME: props.writeDedupTable.tableName,
         WS_CONNECTIONS_TABLE_NAME: props.wsConnectionsTable.tableName,
         BEDROCK_MODEL_ID: bedrockModelId,
+        // Cross-account workaround (see config.ts) — bedrock.ts prefers
+        // these two when present, and only falls back to BEDROCK_MODEL_ID
+        // with the Lambda's own role once this account's Bedrock access is
+        // unblocked and these are removed.
+        BEDROCK_INFERENCE_PROFILE_ARN: bedrockInferenceProfileArn,
+        BEDROCK_CREDENTIALS_SECRET_ARN: bedrockCredentialsSecret.secretArn,
         // WEBSOCKET_CALLBACK_URL is added at the stack level once
         // RealtimeApi's WebSocketStage exists — see stocksync-stack.ts.
       },
@@ -104,12 +119,19 @@ export class SyncEngine extends Construct {
 
     // Scoped to exactly the one foundation model this function is
     // configured to call (BEDROCK_MODEL_ID above) — never "*" (Phase 8's
-    // price-conflict explainer, see senior-prompt-engineer skill).
+    // price-conflict explainer, see senior-prompt-engineer skill). Kept
+    // even though the cross-account path (below) is what actually serves
+    // calls today, so this account's own access "just works" the moment
+    // its use-case approval clears, with no further IAM change needed.
     this.conflictResolverFn.addToRolePolicy(
       new PolicyStatement({
         actions: ["bedrock:InvokeModel"],
         resources: [`arn:aws:bedrock:${Stack.of(this).region}::foundation-model/${bedrockModelId}`],
       }),
     );
+
+    // Read-only on exactly this one secret — the credentials for the
+    // second AWS account bedrock.ts calls Bedrock through.
+    bedrockCredentialsSecret.grantRead(this.conflictResolverFn);
   }
 }
