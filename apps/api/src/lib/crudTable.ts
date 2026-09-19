@@ -2,6 +2,7 @@ import { randomUUID } from "node:crypto";
 import type { APIGatewayProxyEventV2, APIGatewayProxyResultV2 } from "aws-lambda";
 import { ConditionalCheckFailedException } from "@aws-sdk/client-dynamodb";
 import { DeleteCommand, PutCommand, QueryCommand, UpdateCommand } from "@aws-sdk/lib-dynamodb";
+import { canWriteCatalog, getAuthContext } from "./authContext";
 import { ddb } from "./dynamo";
 
 /**
@@ -15,11 +16,15 @@ import { ddb } from "./dynamo";
  * per verb) — GET/POST/PUT/DELETE on the same Lambda, same pattern
  * every resource in this file follows.
  *
- * Auth note: scoped by whatever `shop_id` the caller supplies, exactly
- * like every Tier-1 endpoint — there is no Cognito/JWT layer yet (that's
- * a separate, still-roadmap item; see docs/general/14-build-order-while-waiting.md).
- * Not a regression: nothing in Tier 1 enforces per-shop authorization
- * either (edge case E-1, a stated, known limitation).
+ * Auth: scoped by the verified shop_id from the request's JWT claims
+ * (authContext.ts) when the API Gateway JWT authorizer is in front of the
+ * request — the authoritative value, never the client-supplied shop_id, so
+ * one tenant can never read or write another's catalog. Falls back to the
+ * client-supplied shop_id only when no authorizer context is present,
+ * which is exactly local dev (src/local/server.ts has no Cognito
+ * integration) — same as every other handler in this codebase. Only
+ * owner/manager may create/update/delete; counter_staff can list/browse
+ * but never edit the catalog (see authContext.ts's canWriteCatalog).
  */
 export interface CrudResourceConfig {
   tableName: () => string;
@@ -41,6 +46,15 @@ function invalidPayload(message: string): APIGatewayProxyResultV2 {
 
 function notFound(message: string): APIGatewayProxyResultV2 {
   return { statusCode: 404, body: JSON.stringify({ error: "not_found", message }) };
+}
+
+function forbidden(message: string): APIGatewayProxyResultV2 {
+  return { statusCode: 403, body: JSON.stringify({ error: "forbidden", message }) };
+}
+
+/** The verified shop_id from the JWT, or the client-supplied one when there's no authorizer context (local dev). */
+function resolveShopId(event: APIGatewayProxyEventV2, clientSupplied: string | undefined): string | undefined {
+  return getAuthContext(event)?.shopId ?? clientSupplied;
 }
 
 function requireNonEmptyString(value: unknown): string | undefined {
@@ -67,7 +81,7 @@ function fromItem(config: CrudResourceConfig, item: Record<string, unknown>): Re
 }
 
 async function list(config: CrudResourceConfig, event: APIGatewayProxyEventV2): Promise<APIGatewayProxyResultV2> {
-  const shopId = requireNonEmptyString(event.queryStringParameters?.shop_id);
+  const shopId = resolveShopId(event, requireNonEmptyString(event.queryStringParameters?.shop_id));
   if (!shopId) return invalidPayload("shop_id is required");
 
   const filterValue = config.listFilterField
@@ -94,6 +108,9 @@ async function list(config: CrudResourceConfig, event: APIGatewayProxyEventV2): 
 }
 
 async function create(config: CrudResourceConfig, event: APIGatewayProxyEventV2): Promise<APIGatewayProxyResultV2> {
+  const auth = getAuthContext(event);
+  if (auth && !canWriteCatalog(auth.role)) return forbidden("only owner/manager can create catalog entries");
+
   let body: Record<string, unknown>;
   try {
     body = JSON.parse(event.body ?? "{}") as Record<string, unknown>;
@@ -101,7 +118,7 @@ async function create(config: CrudResourceConfig, event: APIGatewayProxyEventV2)
     return invalidPayload("request body must be valid JSON");
   }
 
-  const shopId = requireNonEmptyString(body.shop_id);
+  const shopId = resolveShopId(event, requireNonEmptyString(body.shop_id));
   if (!shopId) return invalidPayload("shop_id is required");
 
   const row: Record<string, unknown> = {};
@@ -127,6 +144,9 @@ async function update(
   event: APIGatewayProxyEventV2,
   id: string,
 ): Promise<APIGatewayProxyResultV2> {
+  const auth = getAuthContext(event);
+  if (auth && !canWriteCatalog(auth.role)) return forbidden("only owner/manager can update catalog entries");
+
   let body: Record<string, unknown>;
   try {
     body = JSON.parse(event.body ?? "{}") as Record<string, unknown>;
@@ -134,7 +154,7 @@ async function update(
     return invalidPayload("request body must be valid JSON");
   }
 
-  const shopId = requireNonEmptyString(body.shop_id);
+  const shopId = resolveShopId(event, requireNonEmptyString(body.shop_id));
   if (!shopId) return invalidPayload("shop_id is required");
 
   const allowedFields = [...config.requiredFields, ...config.optionalFields];
@@ -175,7 +195,10 @@ async function remove(
   event: APIGatewayProxyEventV2,
   id: string,
 ): Promise<APIGatewayProxyResultV2> {
-  const shopId = requireNonEmptyString(event.queryStringParameters?.shop_id);
+  const auth = getAuthContext(event);
+  if (auth && !canWriteCatalog(auth.role)) return forbidden("only owner/manager can delete catalog entries");
+
+  const shopId = resolveShopId(event, requireNonEmptyString(event.queryStringParameters?.shop_id));
   if (!shopId) return invalidPayload("shop_id is required");
 
   try {

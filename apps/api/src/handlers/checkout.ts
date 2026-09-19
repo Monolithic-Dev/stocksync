@@ -3,6 +3,7 @@ import type { APIGatewayProxyEventV2, APIGatewayProxyResultV2 } from "aws-lambda
 import { PutCommand } from "@aws-sdk/lib-dynamodb";
 import type { TransactionInput } from "@stocksync/core";
 import { ddb } from "../lib/dynamo";
+import { getAuthContext } from "../lib/authContext";
 import { handler as writeIntakeHandler } from "./writeIntake";
 
 interface LineItemInput {
@@ -68,7 +69,10 @@ export async function handler(event: APIGatewayProxyEventV2): Promise<APIGateway
     return invalidPayload("request body must be valid JSON");
   }
 
-  const shopId = requireNonEmptyString(body.shop_id);
+  // The verified JWT's shop_id wins over whatever the client sent (same
+  // pattern as writeIntake.ts/crudTable.ts) — falls back to body.shop_id
+  // only for local dev, which has no Cognito integration.
+  const shopId = getAuthContext(event)?.shopId ?? requireNonEmptyString(body.shop_id);
   const counterId = requireNonEmptyString(body.counter_id);
   if (!shopId) return invalidPayload("shop_id is required");
   if (!counterId) return invalidPayload("counter_id is required");

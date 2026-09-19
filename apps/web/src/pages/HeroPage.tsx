@@ -1,9 +1,5 @@
 import { BoxIcon, WifiOffIcon, MergeIcon, SparklesIcon, BoltIcon, ArrowRightIcon } from "../components/icons";
-import { CounterPicker } from "../components/CounterPicker";
-
-export interface HeroPageProps {
-  onEnter: (shopId: string, counterId: string) => void;
-}
+import { AuthPanel } from "../components/AuthPanel";
 
 const STEPS = [
   {
@@ -47,13 +43,11 @@ const FEATURES = [
 ];
 
 /**
- * The app's real front door. Direct/shareable links that already carry
- * ?shop_id=&counter_id= (README's demo-link pattern) skip this entirely —
- * see App.tsx's routing gate — so this only shows up for a first-time or
- * bare visit, and the two-window conflict demo's shareable links keep
- * working exactly as documented.
+ * The app's real front door. Shown whenever there's no signed-in user
+ * (App.tsx's gate) — a returning, already-authenticated visit skips
+ * straight past this to CounterSelectPage instead.
  */
-export function HeroPage({ onEnter }: HeroPageProps) {
+export function HeroPage() {
   return (
     <div className="min-h-screen bg-gradient-to-b from-indigo-50 via-white to-white">
       <nav className="mx-auto flex max-w-5xl items-center justify-between p-4 sm:p-6">
@@ -130,7 +124,7 @@ export function HeroPage({ onEnter }: HeroPageProps) {
       </section>
 
       <section className="mx-auto max-w-5xl px-4 py-12">
-        <CounterPicker onEnter={onEnter} />
+        <AuthPanel />
       </section>
 
       <footer className="border-t border-slate-100 py-8 text-center text-xs text-slate-400">

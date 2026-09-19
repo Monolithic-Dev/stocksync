@@ -1,5 +1,8 @@
 import { Stack, StackProps } from "aws-cdk-lib";
+import { HttpMethod } from "aws-cdk-lib/aws-apigatewayv2";
+import { HttpLambdaIntegration } from "aws-cdk-lib/aws-apigatewayv2-integrations";
 import { Construct } from "constructs";
+import { Auth } from "./constructs/Auth";
 import { DataLayer } from "./constructs/DataLayer";
 import { SyncEngine } from "./constructs/SyncEngine";
 import { RealtimeApi } from "./constructs/RealtimeApi";
@@ -9,6 +12,8 @@ import { PlatformCrud } from "./constructs/PlatformCrud";
 export class StocksyncStack extends Stack {
   constructor(scope: Construct, id: string, props?: StackProps) {
     super(scope, id, props);
+
+    const auth = new Auth(this, "Auth");
 
     const dataLayer = new DataLayer(this, "DataLayer");
     const syncEngine = new SyncEngine(this, "SyncEngine", {
@@ -22,6 +27,20 @@ export class StocksyncStack extends Stack {
       wsConnectionsTable: dataLayer.wsConnectionsTable,
       inventoryRecordsTable: dataLayer.inventoryRecordsTable,
       auditLogTable: dataLayer.auditLogTable,
+      authorizer: auth.authorizer,
+      userPool: auth.userPool,
+      userPoolClient: auth.userPoolClient,
+    });
+
+    // /staff (owner-only, Auth.ts's staffInviteFn) lives on the same
+    // HttpApi RealtimeApi owns — cross-construct wiring, same pattern as
+    // checkout's write_dedup/SQS grants below, since the authorizer and
+    // the HttpApi are owned by two different constructs.
+    realtimeApi.httpApi.addRoutes({
+      path: "/staff",
+      methods: [HttpMethod.POST],
+      integration: new HttpLambdaIntegration("StaffInviteIntegration", auth.staffInviteFn),
+      authorizer: auth.authorizer,
     });
 
     // Cross-construct wiring that can only happen once both sides exist:
@@ -37,6 +56,7 @@ export class StocksyncStack extends Stack {
 
     const platformCrud = new PlatformCrud(this, "PlatformCrud", {
       httpApi: realtimeApi.httpApi,
+      authorizer: auth.authorizer,
     });
 
     // checkout.ts calls writeIntake.ts's handler directly, in-process (no

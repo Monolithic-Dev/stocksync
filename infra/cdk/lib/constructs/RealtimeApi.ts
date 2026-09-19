@@ -1,11 +1,13 @@
 import * as path from "node:path";
 import { CfnOutput, Duration } from "aws-cdk-lib";
 import { CorsHttpMethod, HttpApi, HttpMethod, WebSocketApi, WebSocketStage } from "aws-cdk-lib/aws-apigatewayv2";
+import type { IHttpRouteAuthorizer } from "aws-cdk-lib/aws-apigatewayv2";
 import { HttpLambdaIntegration, WebSocketLambdaIntegration } from "aws-cdk-lib/aws-apigatewayv2-integrations";
 import { Runtime } from "aws-cdk-lib/aws-lambda";
 import { NodejsFunction } from "aws-cdk-lib/aws-lambda-nodejs";
 import type { Table } from "aws-cdk-lib/aws-dynamodb";
 import type { IFunction } from "aws-cdk-lib/aws-lambda";
+import type { IUserPool, IUserPoolClient } from "aws-cdk-lib/aws-cognito";
 import { Construct } from "constructs";
 
 export interface RealtimeApiProps {
@@ -13,6 +15,11 @@ export interface RealtimeApiProps {
   readonly wsConnectionsTable: Table;
   readonly inventoryRecordsTable: Table;
   readonly auditLogTable: Table;
+  /** Auth.ts's JWT authorizer — applied to every REST route below (all of them require a signed-in user; there's no public route in this API). */
+  readonly authorizer: IHttpRouteAuthorizer;
+  /** wsConnectFn verifies the token itself (WebSocket routes have no native JWT authorizer) — needs these two to build its own verifier. */
+  readonly userPool: IUserPool;
+  readonly userPoolClient: IUserPoolClient;
 }
 
 /**
@@ -43,8 +50,8 @@ export class RealtimeApi extends Construct {
       // scope for the Tier-1 API-key auth model either).
       corsPreflight: {
         allowOrigins: ["*"],
-        allowMethods: [CorsHttpMethod.POST, CorsHttpMethod.GET],
-        allowHeaders: ["content-type", "x-api-key"],
+        allowMethods: [CorsHttpMethod.POST, CorsHttpMethod.GET, CorsHttpMethod.PUT, CorsHttpMethod.DELETE],
+        allowHeaders: ["content-type", "x-api-key", "authorization"],
       },
     });
 
@@ -52,6 +59,7 @@ export class RealtimeApi extends Construct {
       path: "/transactions",
       methods: [HttpMethod.POST],
       integration: new HttpLambdaIntegration("WriteIntakeIntegration", props.writeIntakeFn),
+      authorizer: props.authorizer,
     });
 
     this.syncQueryFn = new NodejsFunction(this, "SyncQueryFunction", {
@@ -67,6 +75,7 @@ export class RealtimeApi extends Construct {
       path: "/sync",
       methods: [HttpMethod.GET],
       integration: new HttpLambdaIntegration("SyncQueryIntegration", this.syncQueryFn),
+      authorizer: props.authorizer,
     });
 
     this.auditQueryFn = new NodejsFunction(this, "AuditQueryFunction", {
@@ -82,6 +91,7 @@ export class RealtimeApi extends Construct {
       path: "/audit/{item_id}",
       methods: [HttpMethod.GET],
       integration: new HttpLambdaIntegration("AuditQueryIntegration", this.auditQueryFn),
+      authorizer: props.authorizer,
     });
 
     this.wsConnectFn = new NodejsFunction(this, "WsConnectFunction", {
@@ -89,7 +99,11 @@ export class RealtimeApi extends Construct {
       handler: "handler",
       runtime: Runtime.NODEJS_22_X,
       timeout: Duration.seconds(10),
-      environment: { WS_CONNECTIONS_TABLE_NAME: props.wsConnectionsTable.tableName },
+      environment: {
+        WS_CONNECTIONS_TABLE_NAME: props.wsConnectionsTable.tableName,
+        USER_POOL_ID: props.userPool.userPoolId,
+        USER_POOL_CLIENT_ID: props.userPoolClient.userPoolClientId,
+      },
     });
 
     this.wsDisconnectFn = new NodejsFunction(this, "WsDisconnectFunction", {
@@ -144,6 +158,7 @@ export class RealtimeApi extends Construct {
       path: "/conflicts/{item_id}/resolve",
       methods: [HttpMethod.POST],
       integration: new HttpLambdaIntegration("ConflictResolveIntegration", this.conflictResolveFn),
+      authorizer: props.authorizer,
     });
 
     new CfnOutput(this, "HttpApiUrl", { value: this.httpApi.apiEndpoint });

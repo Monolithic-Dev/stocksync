@@ -1,37 +1,49 @@
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it } from "vitest";
 import { HeroPage } from "../../src/pages/HeroPage";
+import { AuthProvider } from "../../src/state/AuthContext";
+import { setTokens } from "../../src/lib/tokenStore";
+
+afterEach(() => {
+  setTokens(null);
+});
 
 describe("HeroPage", () => {
   it("renders the value proposition and how-it-works steps", () => {
-    render(<HeroPage onEnter={vi.fn()} />);
+    render(
+      <AuthProvider>
+        <HeroPage />
+      </AuthProvider>,
+    );
 
     expect(screen.getByRole("heading", { name: /inventory that never loses a sale/i })).toBeInTheDocument();
     expect(screen.getByText(/two counters go offline/i)).toBeInTheDocument();
   });
 
-  it("entering as a preset counter calls onEnter with the demo shop and chosen counter", async () => {
-    const user = userEvent.setup();
-    const onEnter = vi.fn();
-    render(<HeroPage onEnter={onEnter} />);
+  it("defaults to the sign-in form", () => {
+    render(
+      <AuthProvider>
+        <HeroPage />
+      </AuthProvider>,
+    );
 
-    await user.click(screen.getByRole("button", { name: /counter a/i }));
-
-    expect(onEnter).toHaveBeenCalledWith("demo-shop", "counter_a");
+    expect(screen.getByRole("heading", { name: /^sign in$/i })).toBeInTheDocument();
   });
 
-  it("entering with a custom shop/counter ID calls onEnter with the typed values", async () => {
+  it("toggling to sign-up shows the shop-name field, and back again returns to sign-in", async () => {
     const user = userEvent.setup();
-    const onEnter = vi.fn();
-    render(<HeroPage onEnter={onEnter} />);
+    render(
+      <AuthProvider>
+        <HeroPage />
+      </AuthProvider>,
+    );
 
-    await user.click(screen.getByText(/use a custom shop \/ counter id instead/i));
-    await user.clear(screen.getByLabelText(/shop id/i));
-    await user.type(screen.getByLabelText(/shop id/i), "other-shop");
-    await user.type(screen.getByLabelText(/counter id/i), "counter_z");
-    await user.click(screen.getByRole("button", { name: /enter/i }));
+    await user.click(screen.getByText(/new shop\? create an account instead/i));
+    expect(screen.getByRole("heading", { name: /set up your shop/i })).toBeInTheDocument();
+    expect(screen.getByLabelText(/shop name/i)).toBeInTheDocument();
 
-    expect(onEnter).toHaveBeenCalledWith("other-shop", "counter_z");
+    await user.click(screen.getByText(/already have an account\? sign in/i));
+    expect(screen.getByRole("heading", { name: /^sign in$/i })).toBeInTheDocument();
   });
 });

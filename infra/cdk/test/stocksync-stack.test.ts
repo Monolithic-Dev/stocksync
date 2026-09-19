@@ -329,6 +329,94 @@ describe("StocksyncStack — PlatformCrud (Tier 2, 19b)", () => {
   });
 });
 
+describe("StocksyncStack — Auth (Cognito, real authentication)", () => {
+  it("creates exactly one self-signup User Pool with a custom:shop_id attribute and email sign-in", () => {
+    const template = synthTemplate();
+    template.resourceCountIs("AWS::Cognito::UserPool", 1);
+    template.hasResourceProperties("AWS::Cognito::UserPool", {
+      AdminCreateUserConfig: { AllowAdminCreateUserOnly: false },
+      Schema: Match.arrayWith([Match.objectLike({ Name: "shop_id", Mutable: true })]),
+    });
+  });
+
+  it("creates exactly one public app client with no secret", () => {
+    const template = synthTemplate();
+    template.resourceCountIs("AWS::Cognito::UserPoolClient", 1);
+    template.hasResourceProperties("AWS::Cognito::UserPoolClient", { GenerateSecret: false });
+  });
+
+  it("creates exactly the three role groups: owner, manager, counter_staff", () => {
+    const template = synthTemplate();
+    const groups = template.findResources("AWS::Cognito::UserPoolGroup");
+    const names = Object.values(groups).map(
+      (group) => (group as { Properties: { GroupName: string } }).Properties.GroupName,
+    );
+    expect(names.sort()).toEqual(["counter_staff", "manager", "owner"]);
+  });
+
+  it("wires a postConfirmation trigger that can only add users to a group, never read/write user data directly", () => {
+    const template = synthTemplate();
+    template.hasResourceProperties("AWS::Cognito::UserPool", {
+      LambdaConfig: Match.objectLike({ PostConfirmation: Match.anyValue() }),
+    });
+
+    const policies = template.findResources("AWS::IAM::Policy");
+    const postConfirmationPolicy = Object.values(policies).find((policy) =>
+      JSON.stringify(policy).includes("PostConfirmationFunction"),
+    );
+    expect(postConfirmationPolicy).toBeDefined();
+    const statements = (
+      postConfirmationPolicy as { Properties: { PolicyDocument: { Statement: { Action: string | string[] }[] } } }
+    ).Properties.PolicyDocument.Statement;
+    const actions = statements.flatMap((statement) => (Array.isArray(statement.Action) ? statement.Action : [statement.Action]));
+    expect(actions).toEqual(["cognito-idp:AdminAddUserToGroup"]);
+  });
+
+  it("exposes POST /staff wired to staffInviteFn, which can create/group/update-attributes users but nothing else on the pool", () => {
+    const template = synthTemplate();
+    template.hasResourceProperties("AWS::ApiGatewayV2::Route", { RouteKey: "POST /staff" });
+
+    const policies = template.findResources("AWS::IAM::Policy");
+    const staffPolicy = Object.values(policies).find((policy) => JSON.stringify(policy).includes("StaffInviteFunction"));
+    expect(staffPolicy).toBeDefined();
+    const statements = (
+      staffPolicy as { Properties: { PolicyDocument: { Statement: { Action: string | string[] }[] } } }
+    ).Properties.PolicyDocument.Statement;
+    const actions = statements
+      .flatMap((statement) => (Array.isArray(statement.Action) ? statement.Action : [statement.Action]))
+      .sort();
+    expect(actions).toEqual(
+      ["cognito-idp:AdminAddUserToGroup", "cognito-idp:AdminCreateUser", "cognito-idp:AdminUpdateUserAttributes"].sort(),
+    );
+  });
+
+  it("creates exactly one JWT authorizer, and every non-auth REST route requires it", () => {
+    const template = synthTemplate();
+    template.resourceCountIs("AWS::ApiGatewayV2::Authorizer", 1);
+    template.hasResourceProperties("AWS::ApiGatewayV2::Authorizer", { AuthorizerType: "JWT" });
+
+    const routes = template.findResources("AWS::ApiGatewayV2::Route");
+    const httpRoutes = Object.values(routes).filter(
+      (route) => !(route as { Properties: { RouteKey: string } }).Properties.RouteKey.startsWith("$"),
+    );
+    // Every REST route in this API requires a signed-in user — there is no
+    // public route (sign-up/sign-in themselves go straight to Cognito from
+    // the client, never through this API).
+    expect(httpRoutes.length).toBeGreaterThan(0);
+    for (const route of httpRoutes) {
+      expect((route as { Properties: { AuthorizerId?: unknown } }).Properties.AuthorizerId).toBeDefined();
+    }
+  });
+
+  it("passes wsConnectFn the User Pool id/client id it needs to verify tokens itself (WebSocket routes have no native JWT authorizer)", () => {
+    const template = synthTemplate();
+    const fn = template.findResources("AWS::Lambda::Function", {
+      Properties: { Environment: { Variables: { USER_POOL_ID: Match.anyValue(), USER_POOL_CLIENT_ID: Match.anyValue() } } },
+    });
+    expect(Object.keys(fn).length).toBeGreaterThan(0);
+  });
+});
+
 describe("StocksyncStack — no wildcard IAM resources", () => {
   it("never grants a DynamoDB or SQS action against a wildcard resource", () => {
     const template = synthTemplate();

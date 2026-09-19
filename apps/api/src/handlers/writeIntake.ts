@@ -8,6 +8,7 @@ import { ddb } from "../lib/dynamo";
 import { sqs } from "../lib/sqs";
 import { createLogger } from "../lib/logger";
 import { createMetrics } from "../lib/metrics";
+import { getAuthContext } from "../lib/authContext";
 
 const logger = createLogger("write-intake");
 // Module-level so a single request's metrics (one or more transactions
@@ -234,7 +235,13 @@ export async function handler(event: APIGatewayProxyEventV2): Promise<APIGateway
   let shopId: string;
   let counterId: string;
   try {
-    shopId = requireNonEmptyString(body.shop_id, "shop_id");
+    // The verified JWT's shop_id wins over whatever the client sent, same
+    // pattern as crudTable.ts — falls back to body.shop_id when there's no
+    // authorizer context, which covers both local dev and checkout.ts's
+    // in-process call into this same handler (its synthesized event never
+    // carries an authorizer context; checkout.ts already resolved its own
+    // caller's shop_id via getAuthContext before building that event).
+    shopId = getAuthContext(event)?.shopId ?? requireNonEmptyString(body.shop_id, "shop_id");
     counterId = requireNonEmptyString(body.counter_id, "counter_id");
   } catch (error) {
     return invalidPayload((error as ValidationError).message);
