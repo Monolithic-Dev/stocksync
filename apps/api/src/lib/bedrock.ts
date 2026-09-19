@@ -1,4 +1,5 @@
 import { BedrockRuntimeClient, InvokeModelCommand } from "@aws-sdk/client-bedrock-runtime";
+import { SecretsManagerClient, GetSecretValueCommand } from "@aws-sdk/client-secrets-manager";
 import { createLogger } from "./logger";
 
 const logger = createLogger("bedrock");
@@ -15,7 +16,19 @@ const MAX_TOKENS = 200;
 // infra/cdk/lib/config.ts — keep this in sync with that file's
 // bedrockModelId; claude-3-haiku-20240307-v1:0 is fully retired from
 // Bedrock's catalog as of this deployment).
-const MODEL_ID = process.env.BEDROCK_MODEL_ID ?? "anthropic.claude-haiku-4-5-20251001-v1:0";
+const MODEL_ID =
+  process.env.BEDROCK_INFERENCE_PROFILE_ARN ?? process.env.BEDROCK_MODEL_ID ?? "anthropic.claude-haiku-4-5-20251001-v1:0";
+
+// Cross-account workaround: the deployment account is blocked from
+// Bedrock's Anthropic models by an account-level use-case approval gate
+// (see config.ts's bedrockInferenceProfileArn comment for the full story).
+// When set, calls go through a second, unblocked account's credentials
+// instead of this Lambda's own role — remove this env var (and
+// BEDROCK_INFERENCE_PROFILE_ARN) once the deployment account's own access
+// is approved, and this reverts to the original same-account behavior with
+// no code change needed.
+const CREDENTIALS_SECRET_ARN = process.env.BEDROCK_CREDENTIALS_SECRET_ARN;
+const CROSS_ACCOUNT_REGION = "us-east-1";
 
 // senior-prompt-engineer/references/bedrock-prompt-templates.md §1 —
 // verbatim. Asks for an explanation and "what to consider," never "which
@@ -27,8 +40,28 @@ const SYSTEM_PROMPT =
   "which value is correct — the owner will decide that.";
 
 let client: BedrockRuntimeClient | undefined;
-function getClient(): BedrockRuntimeClient {
-  client ??= new BedrockRuntimeClient({});
+let cachedCredentials: { accessKeyId: string; secretAccessKey: string } | undefined;
+
+async function getClient(): Promise<BedrockRuntimeClient> {
+  if (client) return client;
+
+  if (CREDENTIALS_SECRET_ARN) {
+    if (!cachedCredentials) {
+      const secretsClient = new SecretsManagerClient({});
+      const response = await secretsClient.send(new GetSecretValueCommand({ SecretId: CREDENTIALS_SECRET_ARN }));
+      const parsed = JSON.parse(response.SecretString ?? "{}") as {
+        accessKeyId?: string;
+        secretAccessKey?: string;
+      };
+      if (!parsed.accessKeyId || !parsed.secretAccessKey) {
+        throw new Error("Bedrock cross-account credentials secret is missing accessKeyId/secretAccessKey");
+      }
+      cachedCredentials = { accessKeyId: parsed.accessKeyId, secretAccessKey: parsed.secretAccessKey };
+    }
+    client = new BedrockRuntimeClient({ region: CROSS_ACCOUNT_REGION, credentials: cachedCredentials });
+  } else {
+    client = new BedrockRuntimeClient({});
+  }
   return client;
 }
 
@@ -89,7 +122,8 @@ export async function explainPriceConflict(
   const timer = setTimeout(() => controller.abort(), TIMEOUT_MS);
 
   try {
-    const response = await getClient().send(
+    const bedrockClient = await getClient();
+    const response = await bedrockClient.send(
       new InvokeModelCommand({
         modelId: MODEL_ID,
         contentType: "application/json",
