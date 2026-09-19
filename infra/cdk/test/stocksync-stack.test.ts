@@ -417,6 +417,36 @@ describe("StocksyncStack — Auth (Cognito, real authentication)", () => {
   });
 });
 
+describe("StocksyncStack — Analytics (Phase 3, owner dashboard)", () => {
+  it("exposes GET /dashboard behind the JWT authorizer", () => {
+    const template = synthTemplate();
+    const routes = template.findResources("AWS::ApiGatewayV2::Route", { Properties: { RouteKey: "GET /dashboard" } });
+    expect(Object.keys(routes).length).toBe(1);
+    const [route] = Object.values(routes) as { Properties: { AuthorizerId?: unknown } }[];
+    expect(route.Properties.AuthorizerId).toBeDefined();
+  });
+
+  it("grants the dashboard function read-only access to inventory_records and orders, nothing else", () => {
+    const template = synthTemplate();
+    const policies = template.findResources("AWS::IAM::Policy");
+    const dashboardPolicy = Object.values(policies).find((policy) =>
+      JSON.stringify(policy).includes("DashboardQueryFunction"),
+    );
+    expect(dashboardPolicy).toBeDefined();
+    const statements = (
+      dashboardPolicy as { Properties: { PolicyDocument: { Statement: { Action: string | string[] }[] } } }
+    ).Properties.PolicyDocument.Statement;
+    const actions = statements.flatMap((statement) => (Array.isArray(statement.Action) ? statement.Action : [statement.Action]));
+
+    expect(actions.every((action) => !action.includes("Put") && !action.includes("Delete") && !action.includes("Update"))).toBe(
+      true,
+    );
+    expect(actions.some((action) => action.startsWith("dynamodb:") && (action.includes("Query") || action.includes("Get")))).toBe(
+      true,
+    );
+  });
+});
+
 describe("StocksyncStack — no wildcard IAM resources", () => {
   it("never grants a DynamoDB or SQS action against a wildcard resource", () => {
     const template = synthTemplate();

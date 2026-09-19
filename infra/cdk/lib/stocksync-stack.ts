@@ -8,6 +8,7 @@ import { SyncEngine } from "./constructs/SyncEngine";
 import { RealtimeApi } from "./constructs/RealtimeApi";
 import { Observability } from "./constructs/Observability";
 import { PlatformCrud } from "./constructs/PlatformCrud";
+import { Analytics } from "./constructs/Analytics";
 
 export class StocksyncStack extends Stack {
   constructor(scope: Construct, id: string, props?: StackProps) {
@@ -70,5 +71,15 @@ export class StocksyncStack extends Stack {
     syncEngine.writeQueue.grantSendMessages(platformCrud.checkoutFn);
     platformCrud.checkoutFn.addEnvironment("WRITE_DEDUP_TABLE_NAME", dataLayer.writeDedupTable.tableName);
     platformCrud.checkoutFn.addEnvironment("WRITE_QUEUE_URL", syncEngine.writeQueue.queueUrl);
+
+    // Owner-facing dashboard (revenue rollups, low-stock, trust score) —
+    // spans DataLayer's inventory_records and PlatformCrud's orders, so it
+    // can only be created here, once both exist.
+    new Analytics(this, "Analytics", {
+      httpApi: realtimeApi.httpApi,
+      authorizer: auth.authorizer,
+      inventoryRecordsTable: dataLayer.inventoryRecordsTable,
+      ordersTable: platformCrud.ordersTable,
+    });
   }
 }

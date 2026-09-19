@@ -6,6 +6,7 @@ import { HeroPage } from "./pages/HeroPage";
 import { ProductsPage } from "./pages/ProductsPage";
 import { CheckoutPage } from "./pages/CheckoutPage";
 import { StaffPage } from "./pages/StaffPage";
+import { DashboardPage } from "./pages/DashboardPage";
 import { CounterPicker } from "./components/CounterPicker";
 
 function useQueryParam(name: string, fallback: string): string {
@@ -20,6 +21,7 @@ const NAV_LINKS = [
   { page: "counter", label: "Counter", roles: ["owner", "manager", "counter_staff"] },
   { page: "products", label: "Products", roles: ["owner", "manager", "counter_staff"] },
   { page: "checkout", label: "Checkout", roles: ["owner", "manager", "counter_staff"] },
+  { page: "dashboard", label: "Dashboard", roles: ["owner", "manager"] },
   { page: "staff", label: "Staff", roles: ["owner"] },
 ] as const;
 
@@ -71,8 +73,9 @@ function AuthedApp({ shopId, role }: AuthedAppProps) {
       </nav>
       {page === "products" && <ProductsPage shopId={shopId} />}
       {page === "checkout" && <CheckoutPage shopId={shopId} counterId={counterId} />}
+      {page === "dashboard" && (role === "owner" || role === "manager") && <DashboardPage shopId={shopId} />}
       {page === "staff" && role === "owner" && <StaffPage />}
-      {page !== "products" && page !== "checkout" && page !== "staff" && <CounterPage />}
+      {!["products", "checkout", "dashboard", "staff"].includes(page) && <CounterPage />}
     </ShopProvider>
   );
 }

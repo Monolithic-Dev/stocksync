@@ -66,3 +66,8 @@ export function canWriteCatalog(role: Role): boolean {
 export function canInviteStaff(role: Role): boolean {
   return role === "owner";
 }
+
+/** Revenue/low-stock/trust-score numbers are a business-owner concern, not a counter-staff one — same role split as catalog writes, named separately since the two checks protect different things and shouldn't drift together by accident. */
+export function canViewDashboard(role: Role): boolean {
+  return CATALOG_WRITE_ROLES.includes(role);
+}

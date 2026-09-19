@@ -128,6 +128,22 @@ describe("App — signed in", () => {
     expect(screen.queryByRole("link", { name: /staff/i })).not.toBeInTheDocument();
   });
 
+  it("shows the Dashboard nav link for a manager but not for counter staff", async () => {
+    signInAs("manager");
+    window.history.pushState({}, "", "/?counter_id=counter_a");
+    render(<App />);
+    await screen.findByText("Parle-G 100g");
+    expect(screen.getByRole("link", { name: /dashboard/i })).toBeInTheDocument();
+  });
+
+  it("hides the Dashboard nav link for counter staff", async () => {
+    signInAs("counter_staff");
+    window.history.pushState({}, "", "/?counter_id=counter_a");
+    render(<App />);
+    await screen.findByText("Parle-G 100g");
+    expect(screen.queryByRole("link", { name: /dashboard/i })).not.toBeInTheDocument();
+  });
+
   it("going offline via the toggle and selling an item queues it, without calling fetch again", async () => {
     signInAs("owner");
     window.history.pushState({}, "", "/?counter_id=counter_a");
