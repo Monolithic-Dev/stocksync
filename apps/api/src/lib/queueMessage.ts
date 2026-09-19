@@ -14,4 +14,6 @@ export interface QueuedTransactionMessage {
   value?: unknown;
   client_vector_clock?: VectorClock;
   client_timestamp?: string;
+  /** See TransactionInput.order_id — purely additive, threaded through unchanged. */
+  order_id?: string;
 }

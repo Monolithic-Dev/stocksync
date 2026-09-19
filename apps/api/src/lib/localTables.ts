@@ -75,3 +75,75 @@ export function localTableDefinitions(names: {
     }),
   ];
 }
+
+/**
+ * The Tier 2 catalog tables (19b, 03-DATABASE-SCHEMA.md §8.1-8.4) —
+ * a second function rather than extending localTableDefinitions' params,
+ * so every existing caller (the Tier-1-only conflictResolver test suite,
+ * in particular) is unaffected by this addition.
+ */
+export function platformTableDefinitions(names: {
+  products: string;
+  categories: string;
+  suppliers: string;
+  orders: string;
+}): CreateTableCommand[] {
+  return [
+    new CreateTableCommand({
+      TableName: names.products,
+      AttributeDefinitions: [
+        { AttributeName: "pk", AttributeType: "S" },
+        { AttributeName: "sk", AttributeType: "S" },
+        { AttributeName: "category_id", AttributeType: "S" },
+      ],
+      KeySchema: [
+        { AttributeName: "pk", KeyType: "HASH" },
+        { AttributeName: "sk", KeyType: "RANGE" },
+      ],
+      GlobalSecondaryIndexes: [
+        {
+          IndexName: "CategoryIndex",
+          KeySchema: [{ AttributeName: "category_id", KeyType: "HASH" }],
+          Projection: { ProjectionType: "ALL" },
+        },
+      ],
+      BillingMode: "PAY_PER_REQUEST",
+    }),
+    new CreateTableCommand({
+      TableName: names.categories,
+      AttributeDefinitions: [
+        { AttributeName: "pk", AttributeType: "S" },
+        { AttributeName: "sk", AttributeType: "S" },
+      ],
+      KeySchema: [
+        { AttributeName: "pk", KeyType: "HASH" },
+        { AttributeName: "sk", KeyType: "RANGE" },
+      ],
+      BillingMode: "PAY_PER_REQUEST",
+    }),
+    new CreateTableCommand({
+      TableName: names.suppliers,
+      AttributeDefinitions: [
+        { AttributeName: "pk", AttributeType: "S" },
+        { AttributeName: "sk", AttributeType: "S" },
+      ],
+      KeySchema: [
+        { AttributeName: "pk", KeyType: "HASH" },
+        { AttributeName: "sk", KeyType: "RANGE" },
+      ],
+      BillingMode: "PAY_PER_REQUEST",
+    }),
+    new CreateTableCommand({
+      TableName: names.orders,
+      AttributeDefinitions: [
+        { AttributeName: "pk", AttributeType: "S" },
+        { AttributeName: "sk", AttributeType: "S" },
+      ],
+      KeySchema: [
+        { AttributeName: "pk", KeyType: "HASH" },
+        { AttributeName: "sk", KeyType: "RANGE" },
+      ],
+      BillingMode: "PAY_PER_REQUEST",
+    }),
+  ];
+}

@@ -4,6 +4,7 @@ import { DataLayer } from "./constructs/DataLayer";
 import { SyncEngine } from "./constructs/SyncEngine";
 import { RealtimeApi } from "./constructs/RealtimeApi";
 import { Observability } from "./constructs/Observability";
+import { PlatformCrud } from "./constructs/PlatformCrud";
 
 export class StocksyncStack extends Stack {
   constructor(scope: Construct, id: string, props?: StackProps) {
@@ -33,5 +34,21 @@ export class StocksyncStack extends Stack {
       writeQueue: syncEngine.writeQueue,
       deadLetterQueue: syncEngine.deadLetterQueue,
     });
+
+    const platformCrud = new PlatformCrud(this, "PlatformCrud", {
+      httpApi: realtimeApi.httpApi,
+    });
+
+    // checkout.ts calls writeIntake.ts's handler directly, in-process (no
+    // new AWS surface for the actual stock-affecting write) — so it needs
+    // the exact same write_dedup/SQS grants and env vars write-intake
+    // itself has. write_dedup and the write queue are owned by
+    // SyncEngine, so this wiring can only happen here, once both
+    // constructs exist — same pattern as the resolver's WebSocket grant
+    // above.
+    dataLayer.writeDedupTable.grantReadWriteData(platformCrud.checkoutFn);
+    syncEngine.writeQueue.grantSendMessages(platformCrud.checkoutFn);
+    platformCrud.checkoutFn.addEnvironment("WRITE_DEDUP_TABLE_NAME", dataLayer.writeDedupTable.tableName);
+    platformCrud.checkoutFn.addEnvironment("WRITE_QUEUE_URL", syncEngine.writeQueue.queueUrl);
   }
 }

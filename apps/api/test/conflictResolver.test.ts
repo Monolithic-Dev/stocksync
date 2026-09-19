@@ -451,6 +451,35 @@ describe("conflictResolver — audit entries carry the compared vector clocks (1
   });
 });
 
+describe("conflictResolver — checkout line items share an order_id in the audit trail (19b)", () => {
+  it("groups two line items of the same order together via a shared order_id in their audit details", async () => {
+    const itemA = uniqueItemId();
+    const itemB = uniqueItemId();
+    await seedItem(itemA);
+    await seedItem(itemB);
+
+    const orderId = "ord-test-1";
+    await invoke([
+      buildMessage({ item_id: itemA, quantity: 3, order_id: orderId }),
+      buildMessage({ item_id: itemB, quantity: 2, order_id: orderId }),
+    ]);
+
+    const [entryA] = await getAuditEntries(itemA);
+    const [entryB] = await getAuditEntries(itemB);
+    expect((entryA?.details as Record<string, unknown>).order_id).toBe(orderId);
+    expect((entryB?.details as Record<string, unknown>).order_id).toBe(orderId);
+  });
+
+  it("omits order_id from the audit details for an ordinary, non-checkout sale", async () => {
+    const itemId = uniqueItemId();
+    await seedItem(itemId);
+    await invoke([buildMessage({ item_id: itemId, quantity: 1 })]);
+
+    const [entry] = await getAuditEntries(itemId);
+    expect(entry?.details as Record<string, unknown>).not.toHaveProperty("order_id");
+  });
+});
+
 describe("conflictResolver — Bedrock price-conflict explanation (FR-7, Phase 8)", () => {
   it("attaches the explanation to conflict_candidates once Bedrock responds, on top of the already-flagged conflict", async () => {
     const itemId = uniqueItemId();
