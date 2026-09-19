@@ -3,6 +3,7 @@ import type { APIGatewayProxyEventV2, APIGatewayProxyResultV2 } from "aws-lambda
 import { ConditionalCheckFailedException } from "@aws-sdk/client-dynamodb";
 import { GetCommand, PutCommand, UpdateCommand } from "@aws-sdk/lib-dynamodb";
 import { ddb } from "../lib/dynamo";
+import { getAuthContext } from "../lib/authContext";
 import { createLogger } from "../lib/logger";
 import { inventoryRecordKey, type InventoryRecordItem } from "../lib/inventoryRecord";
 import { pushToShop } from "./wsPush";
@@ -57,7 +58,7 @@ export async function handler(event: APIGatewayProxyEventV2): Promise<APIGateway
     return invalidPayload("request body must be valid JSON");
   }
 
-  const shopId = requireNonEmptyString(body.shop_id);
+  const shopId = getAuthContext(event)?.shopId ?? requireNonEmptyString(body.shop_id);
   const field = requireNonEmptyString(body.field);
   const resolvedBy = requireNonEmptyString(body.resolved_by);
   if (!shopId) return invalidPayload("shop_id is required");

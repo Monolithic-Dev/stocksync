@@ -1,81 +1,116 @@
 import { useState } from "react";
+import { AuthProvider, useAuth, type AuthUser } from "./state/AuthContext";
 import { ShopProvider } from "./state/ShopContext";
 import { CounterPage } from "./pages/CounterPage";
 import { HeroPage } from "./pages/HeroPage";
 import { ProductsPage } from "./pages/ProductsPage";
 import { CheckoutPage } from "./pages/CheckoutPage";
-
-interface CounterEntry {
-  shopId: string;
-  counterId: string;
-}
-
-/** A direct/shareable link (README's ?shop_id=&counter_id= pattern) already knows which counter it wants — skip the landing page and go straight there. */
-function readEntryFromUrl(): CounterEntry | null {
-  const params = new URLSearchParams(window.location.search);
-  const shopId = params.get("shop_id");
-  const counterId = params.get("counter_id");
-  return shopId && counterId ? { shopId, counterId } : null;
-}
+import { StaffPage } from "./pages/StaffPage";
+import { CounterPicker } from "./components/CounterPicker";
 
 function useQueryParam(name: string, fallback: string): string {
   return new URLSearchParams(window.location.search).get(name) ?? fallback;
 }
 
+function readCounterIdFromUrl(): string | null {
+  return new URLSearchParams(window.location.search).get("counter_id");
+}
+
 const NAV_LINKS = [
-  { page: "counter", label: "Counter" },
-  { page: "products", label: "Products" },
-  { page: "checkout", label: "Checkout" },
+  { page: "counter", label: "Counter", roles: ["owner", "manager", "counter_staff"] },
+  { page: "products", label: "Products", roles: ["owner", "manager", "counter_staff"] },
+  { page: "checkout", label: "Checkout", roles: ["owner", "manager", "counter_staff"] },
+  { page: "staff", label: "Staff", roles: ["owner"] },
 ] as const;
 
+interface AuthedAppProps {
+  shopId: string;
+  role: "owner" | "manager" | "counter_staff";
+}
+
 /**
- * Query-param page switch (?page=products|checkout, default counter) —
- * deliberately not a routing library: a handful of flat pages, no nested
- * routes, no history-stack needs, and CounterPage/the demo already
- * relies on plain query params (?shop_id=&counter_id=) for identity, so
- * this stays consistent with that rather than introducing a second
- * navigation mechanism (19b).
- *
- * A bare visit (no shop_id/counter_id) shows the landing page first —
- * see HeroPage/CounterPicker — regardless of ?page=, since none of the
- * pages below make sense without a known shop/counter identity.
+ * Everything past "we know which shop and which role" — still needs to
+ * know which physical counter this browser session is (CounterPicker),
+ * then the same ?page= nav phase-19b already established. Query-param
+ * page switch stays deliberately not a routing library — see the
+ * original comment this replaced in git history for why.
  */
-export function App() {
-  const [entry, setEntry] = useState<CounterEntry | null>(readEntryFromUrl);
+function AuthedApp({ shopId, role }: AuthedAppProps) {
+  const [counterId, setCounterId] = useState<string | null>(readCounterIdFromUrl);
   const page = useQueryParam("page", "counter");
 
-  function handleEnter(shopId: string, counterId: string): void {
+  function handleEnterCounter(id: string): void {
     const url = new URL(window.location.href);
-    url.searchParams.set("shop_id", shopId);
-    url.searchParams.set("counter_id", counterId);
+    url.searchParams.set("counter_id", id);
     window.history.pushState({}, "", url);
-    setEntry({ shopId, counterId });
+    setCounterId(id);
   }
 
-  if (!entry) {
+  if (!counterId) {
     return (
-      <ShopProvider>
-        <HeroPage onEnter={handleEnter} />
-      </ShopProvider>
+      <div className="flex min-h-screen items-center justify-center px-4">
+        <CounterPicker onEnter={handleEnterCounter} />
+      </div>
     );
   }
+
+  const visibleLinks = NAV_LINKS.filter((link) => (link.roles as readonly string[]).includes(role));
 
   return (
     <ShopProvider>
       <nav className="mx-auto flex max-w-3xl gap-4 px-4 pt-4 text-sm sm:px-6">
-        {NAV_LINKS.map((link) => (
+        {visibleLinks.map((link) => (
           <a
             key={link.page}
-            href={`?page=${link.page}&shop_id=${entry.shopId}&counter_id=${entry.counterId}`}
+            href={`?page=${link.page}&counter_id=${counterId}`}
             className={page === link.page ? "font-semibold text-slate-900" : "text-slate-500 hover:text-slate-700"}
           >
             {link.label}
           </a>
         ))}
       </nav>
-      {page === "products" && <ProductsPage shopId={entry.shopId} />}
-      {page === "checkout" && <CheckoutPage shopId={entry.shopId} counterId={entry.counterId} />}
-      {page !== "products" && page !== "checkout" && <CounterPage />}
+      {page === "products" && <ProductsPage shopId={shopId} />}
+      {page === "checkout" && <CheckoutPage shopId={shopId} counterId={counterId} />}
+      {page === "staff" && role === "owner" && <StaffPage />}
+      {page !== "products" && page !== "checkout" && page !== "staff" && <CounterPage />}
     </ShopProvider>
+  );
+}
+
+function TopBar({ user, onSignOut }: { user: AuthUser; onSignOut: () => void }) {
+  return (
+    <div className="mx-auto flex max-w-3xl items-center justify-end gap-3 px-4 pt-3 text-xs text-slate-400 sm:px-6">
+      <span>{user.email}</span>
+      <button type="button" onClick={onSignOut} className="underline decoration-dotted hover:text-slate-600">
+        Sign out
+      </button>
+    </div>
+  );
+}
+
+function AppShell() {
+  const { status, user, signOut } = useAuth();
+
+  if (status === "loading") {
+    return <div className="flex min-h-screen items-center justify-center text-sm text-slate-500">Loading…</div>;
+  }
+
+  if (status === "signed_out" || !user?.shopId) {
+    return <HeroPage />;
+  }
+
+  return (
+    <div>
+      <TopBar user={user} onSignOut={signOut} />
+      <AuthedApp shopId={user.shopId} role={user.role ?? "counter_staff"} />
+    </div>
+  );
+}
+
+export function App() {
+  return (
+    <AuthProvider>
+      <AppShell />
+    </AuthProvider>
   );
 }

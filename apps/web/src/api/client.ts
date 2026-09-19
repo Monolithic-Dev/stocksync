@@ -8,6 +8,7 @@ import type {
   TransactionResultDTO,
   WsPushMessage,
 } from "@stocksync/core";
+import { getTokens } from "../lib/tokenStore";
 
 // Vite exposes only VITE_-prefixed env vars to client code. Falling back to
 // "" keeps local dev usable before a real API Gateway URL is configured —
@@ -18,7 +19,12 @@ const WEBSOCKET_URL: string = import.meta.env.VITE_WEBSOCKET_URL ?? "";
 const API_KEY: string = import.meta.env.VITE_API_KEY ?? "";
 
 function headers(): HeadersInit {
-  return { "content-type": "application/json", "x-api-key": API_KEY };
+  const idToken = getTokens()?.idToken;
+  return {
+    "content-type": "application/json",
+    "x-api-key": API_KEY,
+    ...(idToken ? { authorization: `Bearer ${idToken}` } : {}),
+  };
 }
 
 export interface TransactionsResponse {
@@ -79,7 +85,12 @@ export async function getAudit(itemId: string, shopId: string): Promise<AuditRes
  * logic, this function's only job is building the correctly-shaped URL.
  */
 export function connectWebSocket(shopId: string, counterId: string): WebSocket {
-  const params = new URLSearchParams({ shop_id: shopId, counter_id: counterId });
+  const idToken = getTokens()?.idToken;
+  const params = new URLSearchParams({
+    shop_id: shopId,
+    counter_id: counterId,
+    ...(idToken ? { token: idToken } : {}),
+  });
   return new WebSocket(`${WEBSOCKET_URL}?${params.toString()}`);
 }
 
@@ -187,6 +198,25 @@ export async function postCheckout(
     throw new Error(`POST /checkout failed: ${response.status}`);
   }
   return (await response.json()) as CheckoutResponse;
+}
+
+export interface StaffInviteResponse {
+  email: string;
+  role: "manager" | "counter_staff";
+  shop_id: string;
+}
+
+/** POST /staff (owner-only — server-side enforced via authContext.ts's canInviteStaff, this is just the client call). */
+export async function postStaffInvite(email: string, role: "manager" | "counter_staff"): Promise<StaffInviteResponse> {
+  const response = await fetch(`${API_BASE_URL}/staff`, {
+    method: "POST",
+    headers: headers(),
+    body: JSON.stringify({ email, role }),
+  });
+  if (!response.ok) {
+    throw new Error(`POST /staff failed: ${response.status}`);
+  }
+  return (await response.json()) as StaffInviteResponse;
 }
 
 export function parseWsPushMessage(raw: string): WsPushMessage | undefined {

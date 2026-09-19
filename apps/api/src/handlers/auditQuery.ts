@@ -2,6 +2,7 @@ import type { APIGatewayProxyEventV2, APIGatewayProxyResultV2 } from "aws-lambda
 import { QueryCommand } from "@aws-sdk/lib-dynamodb";
 import type { AuditHistoryEntry } from "@stocksync/core";
 import { ddb } from "../lib/dynamo";
+import { getAuthContext } from "../lib/authContext";
 import { inventoryRecordKey } from "../lib/inventoryRecord";
 
 function invalidPayload(message: string): APIGatewayProxyResultV2 {
@@ -23,7 +24,7 @@ function timestampFromSortKey(sk: string): string {
  */
 export async function handler(event: APIGatewayProxyEventV2): Promise<APIGatewayProxyResultV2> {
   const itemId = event.pathParameters?.item_id;
-  const shopId = event.queryStringParameters?.shop_id;
+  const shopId = getAuthContext(event)?.shopId ?? event.queryStringParameters?.shop_id;
 
   if (!itemId) return invalidPayload("item_id is required");
   if (!shopId) return invalidPayload("shop_id is required");

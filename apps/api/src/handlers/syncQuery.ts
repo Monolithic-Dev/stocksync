@@ -2,6 +2,7 @@ import type { APIGatewayProxyEventV2, APIGatewayProxyResultV2 } from "aws-lambda
 import { QueryCommand } from "@aws-sdk/lib-dynamodb";
 import type { SyncItem } from "@stocksync/core";
 import { ddb } from "../lib/dynamo";
+import { getAuthContext } from "../lib/authContext";
 import type { InventoryRecordItem } from "../lib/inventoryRecord";
 
 function invalidPayload(message: string): APIGatewayProxyResultV2 {
@@ -49,7 +50,7 @@ function toSyncItem(item: InventoryRecordItem): SyncItem {
  * personalization, not because the response differs by counter today.
  */
 export async function handler(event: APIGatewayProxyEventV2): Promise<APIGatewayProxyResultV2> {
-  const shopId = event.queryStringParameters?.shop_id;
+  const shopId = getAuthContext(event)?.shopId ?? event.queryStringParameters?.shop_id;
   const counterId = event.queryStringParameters?.counter_id;
 
   if (!shopId) return invalidPayload("shop_id is required");

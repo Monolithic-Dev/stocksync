@@ -15,10 +15,18 @@ let ddb: typeof import("../src/lib/dynamo").ddb;
 
 function invoke(
   method: string,
-  options: { query?: Record<string, string>; pathParams?: Record<string, string>; body?: unknown } = {},
+  options: {
+    query?: Record<string, string>;
+    pathParams?: Record<string, string>;
+    body?: unknown;
+    claims?: Record<string, string>;
+  } = {},
 ): Promise<{ statusCode: number; body: string }> {
   const event = {
-    requestContext: { http: { method } },
+    requestContext: {
+      http: { method },
+      ...(options.claims ? { authorizer: { jwt: { claims: options.claims } } } : {}),
+    },
     queryStringParameters: options.query,
     pathParameters: options.pathParams,
     body: options.body !== undefined ? JSON.stringify(options.body) : undefined,
@@ -125,5 +133,58 @@ describe("productsCrud — the generic CRUD handler via one representative resou
     expect(parseBody<{ items: { name: string }[] }>(listedForB).items).not.toContainEqual(
       expect.objectContaining({ name: "Only in A" }),
     );
+  });
+});
+
+describe("productsCrud — authenticated (JWT authorizer present)", () => {
+  const OWNER_CLAIMS = { sub: "u-owner", "custom:shop_id": "auth-shop", "cognito:groups": "owner" };
+  const STAFF_CLAIMS = { sub: "u-staff", "custom:shop_id": "auth-shop", "cognito:groups": "counter_staff" };
+
+  it("the verified JWT shop_id wins over a client-supplied one — closes the cross-tenant gap crudTable.ts used to have", async () => {
+    const created = await invoke("POST", {
+      claims: OWNER_CLAIMS,
+      body: { shop_id: "attacker-supplied-shop", name: "Tenant-safe item" },
+    });
+    expect(created.statusCode).toBe(201);
+
+    // Listed under the JWT's real shop, not the attacker-supplied one.
+    const listedReal = await invoke("GET", { claims: OWNER_CLAIMS, query: { shop_id: "auth-shop" } });
+    expect(parseBody<{ items: { name: string }[] }>(listedReal).items).toContainEqual(
+      expect.objectContaining({ name: "Tenant-safe item" }),
+    );
+
+    const listedAttacker = await invoke("GET", { query: { shop_id: "attacker-supplied-shop" } });
+    expect(parseBody<{ items: unknown[] }>(listedAttacker).items).toHaveLength(0);
+  });
+
+  it("counter_staff can list products but gets 403 creating one", async () => {
+    const listed = await invoke("GET", { claims: STAFF_CLAIMS, query: {} });
+    expect(listed.statusCode).toBe(200);
+
+    const created = await invoke("POST", { claims: STAFF_CLAIMS, body: { name: "Should be blocked" } });
+    expect(created.statusCode).toBe(403);
+  });
+
+  it("counter_staff gets 403 updating or deleting a product owner/manager created", async () => {
+    const created = await invoke("POST", { claims: OWNER_CLAIMS, body: { name: "Owner's item" } });
+    const { product_id } = parseBody<{ product_id: string }>(created);
+
+    const updated = await invoke("PUT", { claims: STAFF_CLAIMS, pathParams: { product_id }, body: { base_price: 5 } });
+    expect(updated.statusCode).toBe(403);
+
+    const deleted = await invoke("DELETE", { claims: STAFF_CLAIMS, pathParams: { product_id } });
+    expect(deleted.statusCode).toBe(403);
+  });
+
+  it("owner can create, update, and delete", async () => {
+    const created = await invoke("POST", { claims: OWNER_CLAIMS, body: { name: "Owner CRUD" } });
+    expect(created.statusCode).toBe(201);
+    const { product_id } = parseBody<{ product_id: string }>(created);
+
+    const updated = await invoke("PUT", { claims: OWNER_CLAIMS, pathParams: { product_id }, body: { base_price: 9 } });
+    expect(updated.statusCode).toBe(200);
+
+    const deleted = await invoke("DELETE", { claims: OWNER_CLAIMS, pathParams: { product_id } });
+    expect(deleted.statusCode).toBe(204);
   });
 });

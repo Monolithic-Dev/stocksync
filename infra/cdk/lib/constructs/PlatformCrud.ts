@@ -1,6 +1,7 @@
 import * as path from "node:path";
 import { Duration, RemovalPolicy } from "aws-cdk-lib";
 import { HttpApi, HttpMethod } from "aws-cdk-lib/aws-apigatewayv2";
+import type { IHttpRouteAuthorizer } from "aws-cdk-lib/aws-apigatewayv2";
 import { HttpLambdaIntegration } from "aws-cdk-lib/aws-apigatewayv2-integrations";
 import { AttributeType, BillingMode, Table } from "aws-cdk-lib/aws-dynamodb";
 import { Runtime } from "aws-cdk-lib/aws-lambda";
@@ -9,6 +10,8 @@ import { Construct } from "constructs";
 
 export interface PlatformCrudProps {
   readonly httpApi: HttpApi;
+  /** Auth.ts's JWT authorizer — every route in this construct requires a signed-in user. */
+  readonly authorizer: IHttpRouteAuthorizer;
 }
 
 /**
@@ -100,11 +103,17 @@ export class PlatformCrud extends Construct {
       ["suppliers", suppliersFn],
     ] as const) {
       const integration = new HttpLambdaIntegration(`${pathPart}CrudIntegration`, fn);
-      props.httpApi.addRoutes({ path: `/${pathPart}`, methods: [HttpMethod.GET, HttpMethod.POST], integration });
+      props.httpApi.addRoutes({
+        path: `/${pathPart}`,
+        methods: [HttpMethod.GET, HttpMethod.POST],
+        integration,
+        authorizer: props.authorizer,
+      });
       props.httpApi.addRoutes({
         path: `/${pathPart}/{${pathPart.replace(/s$/, "")}_id}`,
         methods: [HttpMethod.PUT, HttpMethod.DELETE],
         integration,
+        authorizer: props.authorizer,
       });
     }
 
@@ -128,6 +137,7 @@ export class PlatformCrud extends Construct {
       path: "/checkout",
       methods: [HttpMethod.POST],
       integration: new HttpLambdaIntegration("CheckoutIntegration", this.checkoutFn),
+      authorizer: props.authorizer,
     });
   }
 }
