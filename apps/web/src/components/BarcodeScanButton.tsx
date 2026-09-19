@@ -66,12 +66,12 @@ export function BarcodeScanButton({ items, onResolved }: BarcodeScanButtonProps)
 
   if (state === "scanning") {
     return (
-      <div className="rounded-lg border border-indigo-200 bg-indigo-50/50 p-2">
+      <div className="rounded-lg border border-indigo-200 bg-indigo-50/50 p-2 dark:border-indigo-900 dark:bg-indigo-950/30">
         <video ref={videoRef} data-testid="scan-video" className="w-full rounded-md" muted playsInline />
         <button
           type="button"
           onClick={() => setState("idle")}
-          className="mt-2 text-xs font-medium text-slate-500 hover:text-slate-700"
+          className="mt-2 text-xs font-medium text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200"
         >
           Cancel
         </button>
@@ -84,19 +84,19 @@ export function BarcodeScanButton({ items, onResolved }: BarcodeScanButtonProps)
       <button
         type="button"
         onClick={() => setState("scanning")}
-        className="flex items-center gap-1.5 rounded-md border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-700 transition-colors hover:border-indigo-300 hover:bg-indigo-50 hover:text-indigo-700"
+        className="flex items-center gap-1.5 rounded-md border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-700 transition-colors hover:border-indigo-300 hover:bg-indigo-50 hover:text-indigo-700 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 dark:hover:border-indigo-700 dark:hover:bg-indigo-950/50 dark:hover:text-indigo-300"
       >
         <ScanIcon className="h-4 w-4" />
         Scan barcode/QR
       </button>
       {state === "not_recognized" && (
-        <p data-testid="scan-not-recognized" className="mt-1.5 flex items-center gap-1 text-xs text-amber-700">
+        <p data-testid="scan-not-recognized" className="mt-1.5 flex items-center gap-1 text-xs text-amber-700 dark:text-amber-400">
           <AlertTriangleIcon className="h-3 w-3 shrink-0" />
           Item not recognized — pick it from the list below instead.
         </p>
       )}
       {state === "permission_denied" && (
-        <p data-testid="scan-permission-denied" className="mt-1.5 flex items-center gap-1 text-xs text-rose-700">
+        <p data-testid="scan-permission-denied" className="mt-1.5 flex items-center gap-1 text-xs text-rose-700 dark:text-rose-400">
           <AlertTriangleIcon className="h-3 w-3 shrink-0" />
           Camera access denied — pick the item from the list below instead.
         </p>

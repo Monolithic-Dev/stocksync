@@ -28,7 +28,7 @@ export function EditableField({ value, onCommit, testId }: EditableFieldProps) {
           setDraft(String(value));
           setEditing(true);
         }}
-        className="underline decoration-dotted decoration-slate-400 underline-offset-2 hover:decoration-slate-700"
+        className="underline decoration-dotted decoration-slate-400 underline-offset-2 hover:decoration-slate-700 dark:decoration-slate-600 dark:hover:decoration-slate-300"
         title="Click to edit"
       >
         {value}
@@ -47,7 +47,7 @@ export function EditableField({ value, onCommit, testId }: EditableFieldProps) {
         if (event.key === "Enter") commit();
         if (event.key === "Escape") setEditing(false);
       }}
-      className="w-20 rounded border border-slate-300 px-1 text-right text-sm"
+      className="w-20 rounded border border-slate-300 bg-white px-1 text-right text-sm text-slate-900 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100"
     />
   );
 }

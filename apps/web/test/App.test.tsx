@@ -103,6 +103,20 @@ describe("App — signed in", () => {
     expect(window.location.search).toBe("?counter_id=counter_a");
   });
 
+  it("the theme toggle in the top bar switches the app into dark mode", async () => {
+    signInAs("owner");
+    window.history.pushState({}, "", "/?counter_id=counter_a");
+    const user = userEvent.setup();
+    render(<App />);
+    await screen.findByText("Parle-G 100g");
+
+    expect(document.documentElement.classList.contains("dark")).toBe(false);
+    await user.click(screen.getByRole("button", { name: /switch to dark mode/i }));
+    expect(document.documentElement.classList.contains("dark")).toBe(true);
+
+    document.documentElement.classList.remove("dark");
+  });
+
   it("a URL that already carries counter_id skips the picker", async () => {
     signInAs("owner");
     window.history.pushState({}, "", "/?counter_id=counter_b");

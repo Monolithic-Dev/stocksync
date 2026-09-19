@@ -40,12 +40,12 @@ export function ConflictReviewPanel({ itemId, shopId, counterId, candidates, onR
   }
 
   return (
-    <div className="rounded-lg border border-amber-300 bg-amber-50 p-4 shadow-sm">
+    <div className="rounded-lg border border-amber-300 bg-amber-50 p-4 shadow-sm dark:border-amber-900 dark:bg-amber-950/40">
       <div className="flex items-start gap-2">
-        <AlertTriangleIcon className="mt-0.5 h-4 w-4 shrink-0 text-amber-600" />
+        <AlertTriangleIcon className="mt-0.5 h-4 w-4 shrink-0 text-amber-600 dark:text-amber-400" />
         <div>
-          <h4 className="font-semibold text-amber-900">Conflicting "{candidates.field}" value</h4>
-          <p className="mt-0.5 text-sm text-amber-800">
+          <h4 className="font-semibold text-amber-900 dark:text-amber-200">Conflicting "{candidates.field}" value</h4>
+          <p className="mt-0.5 text-sm text-amber-800 dark:text-amber-300">
             Both counters set this while offline, {candidates.overlap_seconds}s apart. Pick which one should win.
           </p>
         </div>
@@ -53,12 +53,12 @@ export function ConflictReviewPanel({ itemId, shopId, counterId, candidates, onR
 
       {candidates.field === "price" &&
         (candidates.bedrock_explanation ? (
-          <p className="mt-3 rounded-md border border-amber-200 bg-white/70 p-2.5 text-sm text-amber-900">
+          <p className="mt-3 rounded-md border border-amber-200 bg-white/70 p-2.5 text-sm text-amber-900 dark:border-amber-800 dark:bg-slate-900/40 dark:text-amber-200">
             {candidates.bedrock_explanation}
           </p>
         ) : (
-          <p className="mt-3 flex items-center gap-2 rounded-md border border-amber-200 bg-white/50 p-2.5 text-sm italic text-amber-700">
-            <span className="h-3 w-3 animate-spin rounded-full border-2 border-amber-300 border-t-amber-700" />
+          <p className="mt-3 flex items-center gap-2 rounded-md border border-amber-200 bg-white/50 p-2.5 text-sm italic text-amber-700 dark:border-amber-800 dark:bg-slate-900/40 dark:text-amber-400">
+            <span className="h-3 w-3 animate-spin rounded-full border-2 border-amber-300 border-t-amber-700 dark:border-amber-700 dark:border-t-amber-300" />
             Generating explanation…
           </p>
         ))}
@@ -70,17 +70,17 @@ export function ConflictReviewPanel({ itemId, shopId, counterId, candidates, onR
             type="button"
             disabled={resolving !== null}
             onClick={() => void pick(candidate.value)}
-            className="flex flex-col items-start gap-0.5 rounded-md border border-amber-300 bg-white px-3 py-2 text-left transition-colors hover:border-amber-500 hover:bg-amber-100 disabled:opacity-50"
+            className="flex flex-col items-start gap-0.5 rounded-md border border-amber-300 bg-white px-3 py-2 text-left transition-colors hover:border-amber-500 hover:bg-amber-100 disabled:opacity-50 dark:border-amber-800 dark:bg-slate-900 dark:hover:border-amber-600 dark:hover:bg-amber-950"
           >
-            <span className="rounded-full bg-amber-100 px-2 py-0.5 text-xs font-semibold text-amber-700">
+            <span className="rounded-full bg-amber-100 px-2 py-0.5 text-xs font-semibold text-amber-700 dark:bg-amber-900 dark:text-amber-300">
               {candidate.counter_id}
             </span>
-            <span className="text-sm font-medium text-amber-900">: {String(candidate.value)}</span>
+            <span className="text-sm font-medium text-amber-900 dark:text-amber-200">: {String(candidate.value)}</span>
           </button>
         ))}
       </div>
 
-      {error && <p className="mt-2 text-xs text-amber-700">{error}</p>}
+      {error && <p className="mt-2 text-xs text-amber-700 dark:text-amber-400">{error}</p>}
     </div>
   );
 }

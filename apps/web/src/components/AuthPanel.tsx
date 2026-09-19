@@ -4,9 +4,11 @@ import { ArrowRightIcon } from "./icons";
 
 type Mode = "login" | "signup" | "confirm" | "new_password";
 
-const INPUT_CLASS = "w-full rounded-md border border-slate-300 px-3 py-2 text-sm";
+const INPUT_CLASS =
+  "w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 dark:placeholder:text-slate-500";
 const SUBMIT_CLASS =
   "flex w-full items-center justify-center gap-1.5 rounded-md bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-indigo-700 disabled:opacity-50";
+const LINK_CLASS = "mt-4 text-sm text-slate-500 underline decoration-dotted hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200";
 
 /**
  * The app's real front door for identity — replaces the old shop_id/
@@ -89,12 +91,16 @@ export function AuthPanel() {
   }
 
   return (
-    <div id="try-it" className="mx-auto max-w-md rounded-2xl border border-slate-200 bg-white p-6 shadow-sm sm:p-8">
+    <div id="try-it" className="mx-auto max-w-md rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900 sm:p-8">
       {mode === "login" && (
         <>
-          <h2 className="text-xl font-bold text-slate-900">Sign in</h2>
-          <p className="mt-1 text-sm text-slate-600">Enter your shop's account to get to your counter.</p>
-          {info && <p className="mt-3 rounded-md bg-emerald-50 px-3 py-2 text-xs text-emerald-700">{info}</p>}
+          <h2 className="text-xl font-bold text-slate-900 dark:text-slate-100">Sign in</h2>
+          <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">Enter your shop's account to get to your counter.</p>
+          {info && (
+            <p className="mt-3 rounded-md bg-emerald-50 px-3 py-2 text-xs text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300">
+              {info}
+            </p>
+          )}
           <form className="mt-4 flex flex-col gap-3" onSubmit={handleLogin}>
             <input
               type="email"
@@ -114,7 +120,7 @@ export function AuthPanel() {
               aria-label="Password"
               className={INPUT_CLASS}
             />
-            {error && <p className="text-xs text-red-600">{error}</p>}
+            {error && <p className="text-xs text-red-600 dark:text-red-400">{error}</p>}
             <button type="submit" disabled={busy} className={SUBMIT_CLASS}>
               Sign in <ArrowRightIcon className="h-4 w-4" />
             </button>
@@ -125,7 +131,7 @@ export function AuthPanel() {
               setMode("signup");
               setError("");
             }}
-            className="mt-4 text-sm text-slate-500 underline decoration-dotted hover:text-slate-700"
+            className={LINK_CLASS}
           >
             New shop? Create an account instead
           </button>
@@ -134,8 +140,8 @@ export function AuthPanel() {
 
       {mode === "signup" && (
         <>
-          <h2 className="text-xl font-bold text-slate-900">Set up your shop</h2>
-          <p className="mt-1 text-sm text-slate-600">You'll be the owner — invite your staff once you're in.</p>
+          <h2 className="text-xl font-bold text-slate-900 dark:text-slate-100">Set up your shop</h2>
+          <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">You'll be the owner — invite your staff once you're in.</p>
           <form className="mt-4 flex flex-col gap-3" onSubmit={handleSignup}>
             <input
               value={shopName}
@@ -163,7 +169,7 @@ export function AuthPanel() {
               aria-label="Password"
               className={INPUT_CLASS}
             />
-            {error && <p className="text-xs text-red-600">{error}</p>}
+            {error && <p className="text-xs text-red-600 dark:text-red-400">{error}</p>}
             <button type="submit" disabled={busy} className={SUBMIT_CLASS}>
               Create account <ArrowRightIcon className="h-4 w-4" />
             </button>
@@ -174,7 +180,7 @@ export function AuthPanel() {
               setMode("login");
               setError("");
             }}
-            className="mt-4 text-sm text-slate-500 underline decoration-dotted hover:text-slate-700"
+            className={LINK_CLASS}
           >
             Already have an account? Sign in
           </button>
@@ -183,8 +189,8 @@ export function AuthPanel() {
 
       {mode === "confirm" && (
         <>
-          <h2 className="text-xl font-bold text-slate-900">Check your email</h2>
-          <p className="mt-1 text-sm text-slate-600">Enter the confirmation code we sent to {email}.</p>
+          <h2 className="text-xl font-bold text-slate-900 dark:text-slate-100">Check your email</h2>
+          <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">Enter the confirmation code we sent to {email}.</p>
           <form className="mt-4 flex flex-col gap-3" onSubmit={handleConfirm}>
             <input
               value={code}
@@ -194,7 +200,7 @@ export function AuthPanel() {
               aria-label="Confirmation code"
               className={INPUT_CLASS}
             />
-            {error && <p className="text-xs text-red-600">{error}</p>}
+            {error && <p className="text-xs text-red-600 dark:text-red-400">{error}</p>}
             <button type="submit" disabled={busy} className={SUBMIT_CLASS}>
               Confirm <ArrowRightIcon className="h-4 w-4" />
             </button>
@@ -202,7 +208,7 @@ export function AuthPanel() {
           <button
             type="button"
             onClick={() => void resendConfirmationCode(email)}
-            className="mt-4 text-sm text-slate-500 underline decoration-dotted hover:text-slate-700"
+            className={LINK_CLASS}
           >
             Resend code
           </button>
@@ -211,8 +217,8 @@ export function AuthPanel() {
 
       {mode === "new_password" && (
         <>
-          <h2 className="text-xl font-bold text-slate-900">Choose a password</h2>
-          <p className="mt-1 text-sm text-slate-600">First sign-in on an invited account — set your own password to continue.</p>
+          <h2 className="text-xl font-bold text-slate-900 dark:text-slate-100">Choose a password</h2>
+          <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">First sign-in on an invited account — set your own password to continue.</p>
           <form className="mt-4 flex flex-col gap-3" onSubmit={handleNewPassword}>
             <input
               type="password"
@@ -223,7 +229,7 @@ export function AuthPanel() {
               aria-label="New password"
               className={INPUT_CLASS}
             />
-            {error && <p className="text-xs text-red-600">{error}</p>}
+            {error && <p className="text-xs text-red-600 dark:text-red-400">{error}</p>}
             <button type="submit" disabled={busy} className={SUBMIT_CLASS}>
               Set password and continue <ArrowRightIcon className="h-4 w-4" />
             </button>

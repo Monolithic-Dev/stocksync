@@ -12,6 +12,8 @@ import { QueueDrawer } from "../components/QueueDrawer";
 import { ConflictReviewPanel } from "../components/ConflictReviewPanel";
 import { AuditLogView } from "../components/AuditLogView";
 import { BarcodeScanButton } from "../components/BarcodeScanButton";
+import { ItemCardSkeleton } from "../components/Skeleton";
+import { useToast } from "../state/ToastContext";
 import { AlertTriangleIcon, BoxIcon, ClockHistoryIcon, ScanIcon } from "../components/icons";
 
 function useQueryParam(name: string, fallback: string): string {
@@ -36,6 +38,7 @@ export function CounterPage() {
 
   const { state, dispatch } = useShopContext();
   const { isOnline, toggleOffline } = useConnectivity();
+  const { showToast } = useToast();
   const { submitTransaction, replayQueue } = useOfflineQueue(shopId, counterId, isOnline);
   useReplayOnReconnect(isOnline, replayQueue);
   useWebSocketSync(shopId, counterId, isOnline);
@@ -60,25 +63,21 @@ export function CounterPage() {
             <BoxIcon className="h-5 w-5" />
           </div>
           <div>
-            <h1 className="text-lg font-bold leading-tight text-slate-900 sm:text-xl">StockSync Counter</h1>
-            <p className="flex items-center gap-1.5 text-sm text-slate-500">
+            <h1 className="text-lg font-bold leading-tight text-slate-900 dark:text-slate-100 sm:text-xl">StockSync Counter</h1>
+            <p className="flex items-center gap-1.5 text-sm text-slate-500 dark:text-slate-400">
               <span>{shopId}</span>
-              <span className="text-slate-300">·</span>
-              <span className="rounded-full bg-slate-100 px-2 py-0.5 text-xs font-semibold text-slate-600">{counterId}</span>
+              <span className="text-slate-300 dark:text-slate-600">·</span>
+              <span className="rounded-full bg-slate-100 px-2 py-0.5 text-xs font-semibold text-slate-600 dark:bg-slate-800 dark:text-slate-300">
+                {counterId}
+              </span>
             </p>
           </div>
         </div>
         <ConnectivityToggle isOnline={isOnline} onToggle={toggleOffline} />
       </header>
 
-      {state.syncStatus === "loading" && (
-        <p className="mb-4 flex items-center gap-2 text-sm text-slate-400">
-          <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-slate-300 border-t-indigo-500" />
-          Loading inventory…
-        </p>
-      )}
       {state.syncStatus === "error" && (
-        <p className="mb-4 flex items-center gap-2 rounded-md border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-700">
+        <p className="mb-4 flex items-center gap-2 rounded-md border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-700 dark:border-rose-900 dark:bg-rose-950 dark:text-rose-300">
           <AlertTriangleIcon className="h-4 w-4 shrink-0" />
           Couldn't load inventory. Check the connection and try again.
         </p>
@@ -86,7 +85,7 @@ export function CounterPage() {
 
       {conflictedItems.length > 0 && (
         <section className="mb-6 space-y-3">
-          <h2 className="flex items-center gap-1.5 text-sm font-semibold text-amber-800">
+          <h2 className="flex items-center gap-1.5 text-sm font-semibold text-amber-800 dark:text-amber-400">
             <AlertTriangleIcon className="h-4 w-4" />
             Needs your review
           </h2>
@@ -102,6 +101,7 @@ export function CounterPage() {
                 // or WebSocket push — this panel doesn't optimistically
                 // clear itself, since a human decision on a real conflict
                 // deserves server confirmation before the UI moves on.
+                showToast(`Resolved the "${item.conflict_candidates.field}" conflict on ${item.name ?? item.item_id}.`, "success");
               }}
             />
           ))}
@@ -115,9 +115,9 @@ export function CounterPage() {
             explicit clicks as picking the item from the list below. */}
         <BarcodeScanButton items={items} onResolved={(itemId) => setScannedItemId(itemId)} />
         {scannedItemId && (
-          <div className="mt-2 flex animate-[fadeIn_150ms_ease-out] items-center gap-2 rounded-md border border-indigo-200 bg-indigo-50 p-2 text-sm">
+          <div className="mt-2 flex animate-[fadeIn_150ms_ease-out] items-center gap-2 rounded-md border border-indigo-200 bg-indigo-50 p-2 text-sm dark:border-indigo-900 dark:bg-indigo-950/50">
             <ScanIcon className="h-4 w-4 shrink-0 text-indigo-500" />
-            <span className="flex-1 text-indigo-900">
+            <span className="flex-1 text-indigo-900 dark:text-indigo-200">
               Scanned: <span className="font-medium">{items.find((item) => item.item_id === scannedItemId)?.name ?? scannedItemId}</span>
             </span>
             <button
@@ -136,14 +136,14 @@ export function CounterPage() {
                 void submitTransaction({ itemId: scannedItemId, type: "restock", quantity: 1 });
                 setScannedItemId(undefined);
               }}
-              className="rounded-md border border-slate-300 bg-white px-2 py-1 text-xs font-medium text-slate-700 transition-colors hover:bg-slate-50 active:scale-95"
+              className="rounded-md border border-slate-300 bg-white px-2 py-1 text-xs font-medium text-slate-700 transition-colors hover:bg-slate-50 active:scale-95 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700"
             >
               Restock 1
             </button>
             <button
               type="button"
               onClick={() => setScannedItemId(undefined)}
-              className="text-xs text-indigo-400 hover:text-indigo-600"
+              className="text-xs text-indigo-400 hover:text-indigo-600 dark:text-indigo-300 dark:hover:text-indigo-100"
             >
               Cancel
             </button>
@@ -152,29 +152,31 @@ export function CounterPage() {
       </section>
 
       <section className="mb-6 grid grid-cols-1 gap-3 sm:grid-cols-2">
-        {items.map((item) => (
-          <ItemCard
-            key={item.item_id}
-            item={item}
-            highlighted={item.item_id === scannedItemId}
-            onSell={(itemId) => void submitTransaction({ itemId, type: "sale", quantity: 1 })}
-            onRestock={(itemId) => void submitTransaction({ itemId, type: "restock", quantity: 1 })}
-            onFieldUpdate={(itemId, field, value) => void submitTransaction({ itemId, type: "field_update", field, value })}
-          />
-        ))}
+        {state.syncStatus === "loading"
+          ? Array.from({ length: 4 }, (_, i) => <ItemCardSkeleton key={i} />)
+          : items.map((item) => (
+              <ItemCard
+                key={item.item_id}
+                item={item}
+                highlighted={item.item_id === scannedItemId}
+                onSell={(itemId) => void submitTransaction({ itemId, type: "sale", quantity: 1 })}
+                onRestock={(itemId) => void submitTransaction({ itemId, type: "restock", quantity: 1 })}
+                onFieldUpdate={(itemId, field, value) => void submitTransaction({ itemId, type: "field_update", field, value })}
+              />
+            ))}
       </section>
 
       <section className="mb-6">
-        <h2 className="mb-2 flex items-center gap-1.5 text-sm font-semibold text-slate-700">
-          <BoxIcon className="h-4 w-4 text-slate-400" />
+        <h2 className="mb-2 flex items-center gap-1.5 text-sm font-semibold text-slate-700 dark:text-slate-300">
+          <BoxIcon className="h-4 w-4 text-slate-400 dark:text-slate-500" />
           Pending queue
         </h2>
         <QueueDrawer entries={state.queue} />
       </section>
 
       <section>
-        <h2 className="mb-2 flex items-center gap-1.5 text-sm font-semibold text-slate-700">
-          <ClockHistoryIcon className="h-4 w-4 text-slate-400" />
+        <h2 className="mb-2 flex items-center gap-1.5 text-sm font-semibold text-slate-700 dark:text-slate-300">
+          <ClockHistoryIcon className="h-4 w-4 text-slate-400 dark:text-slate-500" />
           Audit trail
         </h2>
         <div className="mb-2 flex flex-wrap gap-2">
@@ -185,8 +187,8 @@ export function CounterPage() {
               onClick={() => setAuditItemId(item.item_id)}
               className={`rounded-md border px-2 py-1 text-xs ${
                 auditItemId === item.item_id
-                  ? "border-slate-900 bg-slate-900 text-white"
-                  : "border-slate-300 text-slate-600 hover:bg-slate-50"
+                  ? "border-slate-900 bg-slate-900 text-white dark:border-slate-100 dark:bg-slate-100 dark:text-slate-900"
+                  : "border-slate-300 text-slate-600 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-400 dark:hover:bg-slate-800"
               }`}
             >
               {item.item_id}
@@ -196,7 +198,7 @@ export function CounterPage() {
         {auditItemId ? (
           <AuditLogView itemId={auditItemId} shopId={shopId} />
         ) : (
-          <p className="text-sm text-slate-400">Pick an item to view its history.</p>
+          <p className="text-sm text-slate-400 dark:text-slate-500">Pick an item to view its history.</p>
         )}
       </section>
     </div>
