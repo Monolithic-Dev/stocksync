@@ -11,9 +11,9 @@ function synthTemplate(): Template {
 }
 
 describe("StocksyncStack — DataLayer", () => {
-  it("creates exactly four on-demand DynamoDB tables", () => {
+  it("creates exactly eight on-demand DynamoDB tables (four Tier-1 + four Tier-2 catalog tables)", () => {
     const template = synthTemplate();
-    template.resourceCountIs("AWS::DynamoDB::Table", 4);
+    template.resourceCountIs("AWS::DynamoDB::Table", 8);
     const tables = template.findResources("AWS::DynamoDB::Table");
     for (const table of Object.values(tables)) {
       expect((table as { Properties: { BillingMode: string } }).Properties.BillingMode).toBe("PAY_PER_REQUEST");
@@ -250,6 +250,59 @@ describe("StocksyncStack — Observability dashboard (Phase 9)", () => {
     expect(body).toContain("IdempotencyHitRate");
     expect(body).toContain("StockSync");
     expect(body).toContain("ApproximateNumberOfMessagesVisible");
+  });
+});
+
+describe("StocksyncStack — Tier 2 catalog and checkout (19b)", () => {
+  it("indexes products by category_id via CategoryIndex", () => {
+    const template = synthTemplate();
+    template.hasResourceProperties("AWS::DynamoDB::Table", {
+      GlobalSecondaryIndexes: Match.arrayWith([Match.objectLike({ IndexName: "CategoryIndex" })]),
+    });
+  });
+
+  it("exposes the catalog CRUD routes and POST /checkout", () => {
+    const template = synthTemplate();
+    for (const routeKey of [
+      "GET /products",
+      "POST /products",
+      "PUT /products/{product_id}",
+      "DELETE /products/{product_id}",
+      "GET /categories",
+      "GET /suppliers",
+      "POST /checkout",
+    ]) {
+      template.hasResourceProperties("AWS::ApiGatewayV2::Route", { RouteKey: routeKey });
+    }
+  });
+
+  it("gives checkout the orders table plus write-intake's own write_dedup and queue env vars — the in-process call into write-intake needs exactly those", () => {
+    const template = synthTemplate();
+    const checkout = Object.values(template.findResources("AWS::Lambda::Function")).find((fn) => {
+      const env = (fn as { Properties: { Environment?: { Variables?: Record<string, unknown> } } }).Properties
+        .Environment?.Variables;
+      return env !== undefined && "ORDERS_TABLE_NAME" in env;
+    }) as { Properties: { Environment: { Variables: Record<string, unknown> } } } | undefined;
+
+    expect(checkout).toBeDefined();
+    const variables = Object.keys(checkout!.Properties.Environment.Variables);
+    expect(variables).toEqual(expect.arrayContaining(["ORDERS_TABLE_NAME", "WRITE_DEDUP_TABLE_NAME", "WRITE_QUEUE_URL"]));
+  });
+
+  it("never lets a catalog CRUD Lambda touch inventory_records — it stays the resolver's alone to write", () => {
+    const template = synthTemplate();
+    const crudFns = Object.values(template.findResources("AWS::Lambda::Function")).filter((fn) => {
+      const env = (fn as { Properties: { Environment?: { Variables?: Record<string, unknown> } } }).Properties
+        .Environment?.Variables;
+      return env !== undefined && ("PRODUCTS_TABLE_NAME" in env || "CATEGORIES_TABLE_NAME" in env || "SUPPLIERS_TABLE_NAME" in env);
+    });
+    expect(crudFns).toHaveLength(3);
+    for (const fn of crudFns) {
+      const env = (fn as { Properties: { Environment: { Variables: Record<string, unknown> } } }).Properties.Environment
+        .Variables;
+      expect(env).not.toHaveProperty("INVENTORY_RECORDS_TABLE_NAME");
+      expect(env).not.toHaveProperty("AUDIT_LOG_TABLE_NAME");
+    }
   });
 });
 
