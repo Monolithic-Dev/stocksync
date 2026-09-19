@@ -41,26 +41,29 @@ export function ProductForm({ categories, suppliers, onSubmit }: ProductFormProp
   }
 
   return (
-    <form onSubmit={handleSubmit} className="grid grid-cols-2 gap-2 rounded-lg border border-slate-200 bg-white p-4 sm:grid-cols-5">
+    <form
+      onSubmit={handleSubmit}
+      className="grid grid-cols-2 gap-2 rounded-lg border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900 sm:grid-cols-5"
+    >
       <input
         data-testid="product-name-input"
         placeholder="Name"
         value={name}
         onChange={(event) => setName(event.target.value)}
-        className="col-span-2 rounded border border-slate-300 px-2 py-1 text-sm sm:col-span-1"
+        className="col-span-2 rounded border border-slate-300 bg-white px-2 py-1 text-sm text-slate-900 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 sm:col-span-1"
       />
       <input
         data-testid="product-sku-input"
         placeholder="SKU"
         value={sku}
         onChange={(event) => setSku(event.target.value)}
-        className="rounded border border-slate-300 px-2 py-1 text-sm"
+        className="rounded border border-slate-300 bg-white px-2 py-1 text-sm text-slate-900 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100"
       />
       <select
         data-testid="product-category-select"
         value={categoryId}
         onChange={(event) => setCategoryId(event.target.value)}
-        className="rounded border border-slate-300 px-2 py-1 text-sm"
+        className="rounded border border-slate-300 bg-white px-2 py-1 text-sm text-slate-900 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100"
       >
         <option value="">Category</option>
         {categories.map((category) => (
@@ -73,7 +76,7 @@ export function ProductForm({ categories, suppliers, onSubmit }: ProductFormProp
         data-testid="product-supplier-select"
         value={supplierId}
         onChange={(event) => setSupplierId(event.target.value)}
-        className="rounded border border-slate-300 px-2 py-1 text-sm"
+        className="rounded border border-slate-300 bg-white px-2 py-1 text-sm text-slate-900 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100"
       >
         <option value="">Supplier</option>
         {suppliers.map((supplier) => (
@@ -89,9 +92,9 @@ export function ProductForm({ categories, suppliers, onSubmit }: ProductFormProp
           placeholder="₹"
           value={basePrice}
           onChange={(event) => setBasePrice(event.target.value)}
-          className="w-16 rounded border border-slate-300 px-2 py-1 text-sm"
+          className="w-16 rounded border border-slate-300 bg-white px-2 py-1 text-sm text-slate-900 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100"
         />
-        <button type="submit" className="rounded-md bg-slate-900 px-3 py-1 text-sm font-medium text-white hover:bg-slate-700">
+        <button type="submit" className="rounded-md bg-slate-900 px-3 py-1 text-sm font-medium text-white hover:bg-slate-700 dark:bg-slate-100 dark:text-slate-900 dark:hover:bg-slate-300">
           Add
         </button>
       </div>

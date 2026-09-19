@@ -1,6 +1,8 @@
 import { useState } from "react";
 import { AuthProvider, useAuth, type AuthUser } from "./state/AuthContext";
 import { ShopProvider } from "./state/ShopContext";
+import { ThemeProvider } from "./state/ThemeContext";
+import { ToastProvider } from "./state/ToastContext";
 import { CounterPage } from "./pages/CounterPage";
 import { HeroPage } from "./pages/HeroPage";
 import { ProductsPage } from "./pages/ProductsPage";
@@ -8,6 +10,8 @@ import { CheckoutPage } from "./pages/CheckoutPage";
 import { StaffPage } from "./pages/StaffPage";
 import { DashboardPage } from "./pages/DashboardPage";
 import { CounterPicker } from "./components/CounterPicker";
+import { ThemeToggle } from "./components/ThemeToggle";
+import { ToastContainer } from "./components/ToastContainer";
 
 function useQueryParam(name: string, fallback: string): string {
   return new URLSearchParams(window.location.search).get(name) ?? fallback;
@@ -65,7 +69,11 @@ function AuthedApp({ shopId, role }: AuthedAppProps) {
           <a
             key={link.page}
             href={`?page=${link.page}&counter_id=${counterId}`}
-            className={page === link.page ? "font-semibold text-slate-900" : "text-slate-500 hover:text-slate-700"}
+            className={
+              page === link.page
+                ? "font-semibold text-slate-900 dark:text-slate-100"
+                : "text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200"
+            }
           >
             {link.label}
           </a>
@@ -84,9 +92,10 @@ function TopBar({ user, onSignOut }: { user: AuthUser; onSignOut: () => void }) 
   return (
     <div className="mx-auto flex max-w-3xl items-center justify-end gap-3 px-4 pt-3 text-xs text-slate-400 sm:px-6">
       <span>{user.email}</span>
-      <button type="button" onClick={onSignOut} className="underline decoration-dotted hover:text-slate-600">
+      <button type="button" onClick={onSignOut} className="underline decoration-dotted hover:text-slate-600 dark:hover:text-slate-200">
         Sign out
       </button>
+      <ThemeToggle />
     </div>
   );
 }
@@ -95,7 +104,9 @@ function AppShell() {
   const { status, user, signOut } = useAuth();
 
   if (status === "loading") {
-    return <div className="flex min-h-screen items-center justify-center text-sm text-slate-500">Loading…</div>;
+    return (
+      <div className="flex min-h-screen items-center justify-center text-sm text-slate-500 dark:text-slate-400">Loading…</div>
+    );
   }
 
   if (status === "signed_out" || !user?.shopId) {
@@ -112,8 +123,13 @@ function AppShell() {
 
 export function App() {
   return (
-    <AuthProvider>
-      <AppShell />
-    </AuthProvider>
+    <ThemeProvider>
+      <ToastProvider>
+        <AuthProvider>
+          <AppShell />
+        </AuthProvider>
+        <ToastContainer />
+      </ToastProvider>
+    </ThemeProvider>
   );
 }

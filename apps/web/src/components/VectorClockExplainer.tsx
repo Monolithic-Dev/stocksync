@@ -40,14 +40,17 @@ export function VectorClockExplainer({ entry }: VectorClockExplainerProps) {
   if (current === undefined && incoming === undefined) return null;
 
   return (
-    <div className="mt-1 rounded-md bg-slate-50 p-2 text-xs text-slate-600" data-testid="vector-clock-explainer">
+    <div
+      className="mt-1 rounded-md bg-slate-50 p-2 text-xs text-slate-600 dark:bg-slate-800/60 dark:text-slate-400"
+      data-testid="vector-clock-explainer"
+    >
       <div className="grid grid-cols-2 gap-2">
         <div>
-          <div className="font-medium text-slate-500">Stored clock</div>
+          <div className="font-medium text-slate-500 dark:text-slate-400">Stored clock</div>
           <div data-testid="current-clock">{formatClock(current)}</div>
         </div>
         <div>
-          <div className="font-medium text-slate-500">Incoming clock</div>
+          <div className="font-medium text-slate-500 dark:text-slate-400">Incoming clock</div>
           <div data-testid="incoming-clock">{formatClock(incoming)}</div>
         </div>
       </div>

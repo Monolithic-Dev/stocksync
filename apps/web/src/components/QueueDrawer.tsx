@@ -13,9 +13,9 @@ const STATUS_LABEL: Record<QueueDisplayEntry["status"], string> = {
 };
 
 const STATUS_STYLE: Record<QueueDisplayEntry["status"], string> = {
-  queued: "bg-slate-100 text-slate-700",
-  replaying: "bg-sky-100 text-sky-800",
-  reconciled: "bg-emerald-100 text-emerald-800",
+  queued: "bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300",
+  replaying: "bg-sky-100 text-sky-800 dark:bg-sky-950 dark:text-sky-300",
+  reconciled: "bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300",
 };
 
 export interface QueueDrawerProps {
@@ -47,7 +47,7 @@ export function QueueDrawer({ entries }: QueueDrawerProps) {
   }, [entries, dispatch]);
 
   if (entries.length === 0) {
-    return <p className="text-sm text-slate-400">Nothing queued — everything is synced.</p>;
+    return <p className="text-sm text-slate-400 dark:text-slate-500">Nothing queued — everything is synced.</p>;
   }
 
   return (
@@ -55,11 +55,11 @@ export function QueueDrawer({ entries }: QueueDrawerProps) {
       {entries.map((entry) => (
         <li
           key={entry.idempotencyKey}
-          className={`flex items-center justify-between rounded-md border border-slate-200 bg-white px-3 py-2 text-sm ${
+          className={`flex items-center justify-between rounded-md border border-slate-200 bg-white px-3 py-2 text-sm dark:border-slate-800 dark:bg-slate-900 ${
             leavingKeys.has(entry.idempotencyKey) ? "animate-[fadeOutDown_300ms_ease-in_forwards]" : ""
           }`}
         >
-          <span className="text-slate-700">
+          <span className="text-slate-700 dark:text-slate-300">
             {entry.type} · {entry.itemId}
           </span>
           <span className={`flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium ${STATUS_STYLE[entry.status]}`}>
