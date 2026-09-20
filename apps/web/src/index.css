@@ -4,6 +4,26 @@
 
 body {
   @apply bg-slate-50 text-slate-900 transition-colors dark:bg-slate-950 dark:text-slate-100;
+  font-family: "Inter", ui-sans-serif, system-ui, sans-serif;
+  font-feature-settings: "cv11", "ss01";
+}
+
+.font-display {
+  font-family: "Lexend", "Inter", ui-sans-serif, system-ui, sans-serif;
+}
+
+/* Staggered entrance animations — apply alongside animate-fade-in-up */
+.delay-1 { animation-delay: 0.08s; }
+.delay-2 { animation-delay: 0.16s; }
+.delay-3 { animation-delay: 0.24s; }
+.delay-4 { animation-delay: 0.32s; }
+.delay-5 { animation-delay: 0.4s; }
+
+.bg-grid-slate {
+  background-image:
+    linear-gradient(to right, rgb(100 116 139 / 0.07) 1px, transparent 1px),
+    linear-gradient(to bottom, rgb(100 116 139 / 0.07) 1px, transparent 1px);
+  background-size: 32px 32px;
 }
 
 @keyframes fadeIn {

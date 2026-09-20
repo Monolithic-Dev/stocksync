@@ -1,14 +1,55 @@
-import { useState, type FormEvent } from "react";
+import { useState, type FormEvent, type ReactNode } from "react";
 import { useAuth } from "../state/AuthContext";
-import { ArrowRightIcon } from "./icons";
+import {
+  ArrowRight,
+  Mail,
+  Lock,
+  Store,
+  KeyRound,
+  Eye,
+  EyeOff,
+  Loader2,
+  AlertCircle,
+  CheckCircle2,
+} from "lucide-react";
 
 type Mode = "login" | "signup" | "confirm" | "new_password";
 
 const INPUT_CLASS =
-  "w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 dark:placeholder:text-slate-500";
+  "w-full rounded-lg border border-slate-300 bg-white py-2.5 pl-10 pr-10 text-sm text-slate-900 placeholder:text-slate-400 outline-none transition-all focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 dark:placeholder:text-slate-500 dark:focus:border-indigo-500 dark:focus:ring-indigo-500/20";
 const SUBMIT_CLASS =
-  "flex w-full items-center justify-center gap-1.5 rounded-md bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-indigo-700 disabled:opacity-50";
-const LINK_CLASS = "mt-4 text-sm text-slate-500 underline decoration-dotted hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200";
+  "group flex w-full items-center justify-center gap-1.5 rounded-lg bg-gradient-to-br from-indigo-600 to-indigo-700 px-4 py-3 text-sm font-semibold text-white shadow-md shadow-indigo-600/20 transition-all hover:-translate-y-0.5 hover:shadow-lg hover:shadow-indigo-600/30 disabled:pointer-events-none disabled:opacity-60 disabled:shadow-none";
+const LINK_CLASS = "mt-5 block text-center text-sm text-slate-500 underline decoration-dotted underline-offset-2 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200";
+
+interface FieldProps {
+  icon: ReactNode;
+  trailing?: ReactNode;
+  children: ReactNode;
+}
+
+function Field({ icon, trailing, children }: FieldProps) {
+  return (
+    <div className="relative">
+      <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500">{icon}</span>
+      {children}
+      {trailing && <span className="absolute right-3 top-1/2 -translate-y-1/2">{trailing}</span>}
+    </div>
+  );
+}
+
+function PasswordVisibilityToggle({ visible, onToggle }: { visible: boolean; onToggle: () => void }) {
+  return (
+    <button
+      type="button"
+      onClick={onToggle}
+      tabIndex={-1}
+      aria-label={visible ? "Hide password" : "Show password"}
+      className="pointer-events-auto text-slate-400 transition-colors hover:text-slate-600 dark:text-slate-500 dark:hover:text-slate-300"
+    >
+      {visible ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+    </button>
+  );
+}
 
 /**
  * The app's real front door for identity — replaces the old shop_id/
@@ -29,6 +70,7 @@ export function AuthPanel() {
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
   const [info, setInfo] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
 
   async function handleLogin(event: FormEvent): Promise<void> {
     event.preventDefault();
@@ -91,38 +133,54 @@ export function AuthPanel() {
   }
 
   return (
-    <div id="try-it" className="mx-auto max-w-md rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900 sm:p-8">
+    <div
+      id="try-it"
+      className="mx-auto max-w-md animate-fade-in-up rounded-2xl border border-slate-200 bg-white/80 p-6 shadow-xl shadow-slate-200/50 backdrop-blur-sm dark:border-slate-800 dark:bg-slate-900/80 dark:shadow-none sm:p-8"
+    >
       {mode === "login" && (
-        <>
-          <h2 className="text-xl font-bold text-slate-900 dark:text-slate-100">Sign in</h2>
+        <div className="animate-fade-in">
+          <h2 className="font-display text-xl font-bold text-slate-900 dark:text-slate-100">Sign in</h2>
           <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">Enter your shop's account to get to your counter.</p>
           {info && (
-            <p className="mt-3 rounded-md bg-emerald-50 px-3 py-2 text-xs text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300">
+            <p className="mt-3 flex items-center gap-1.5 rounded-lg bg-emerald-50 px-3 py-2 text-xs text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300">
+              <CheckCircle2 className="h-3.5 w-3.5 shrink-0" />
               {info}
             </p>
           )}
           <form className="mt-4 flex flex-col gap-3" onSubmit={handleLogin}>
-            <input
-              type="email"
-              required
-              value={email}
-              onChange={(event) => setEmail(event.target.value)}
-              placeholder="you@shop.com"
-              aria-label="Email"
-              className={INPUT_CLASS}
-            />
-            <input
-              type="password"
-              required
-              value={password}
-              onChange={(event) => setPassword(event.target.value)}
-              placeholder="Password"
-              aria-label="Password"
-              className={INPUT_CLASS}
-            />
-            {error && <p className="text-xs text-red-600 dark:text-red-400">{error}</p>}
+            <Field icon={<Mail className="h-4 w-4" />}>
+              <input
+                type="email"
+                required
+                value={email}
+                onChange={(event) => setEmail(event.target.value)}
+                placeholder="you@shop.com"
+                aria-label="Email"
+                className={INPUT_CLASS}
+              />
+            </Field>
+            <Field
+              icon={<Lock className="h-4 w-4" />}
+              trailing={<PasswordVisibilityToggle visible={showPassword} onToggle={() => setShowPassword((v) => !v)} />}
+            >
+              <input
+                type={showPassword ? "text" : "password"}
+                required
+                value={password}
+                onChange={(event) => setPassword(event.target.value)}
+                placeholder="Password"
+                aria-label="Password"
+                className={INPUT_CLASS}
+              />
+            </Field>
+            {error && (
+              <p className="flex items-center gap-1.5 text-xs text-red-600 dark:text-red-400">
+                <AlertCircle className="h-3.5 w-3.5 shrink-0" />
+                {error}
+              </p>
+            )}
             <button type="submit" disabled={busy} className={SUBMIT_CLASS}>
-              Sign in <ArrowRightIcon className="h-4 w-4" />
+              {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <>Sign in <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" /></>}
             </button>
           </form>
           <button
@@ -135,43 +193,57 @@ export function AuthPanel() {
           >
             New shop? Create an account instead
           </button>
-        </>
+        </div>
       )}
 
       {mode === "signup" && (
-        <>
-          <h2 className="text-xl font-bold text-slate-900 dark:text-slate-100">Set up your shop</h2>
+        <div className="animate-fade-in">
+          <h2 className="font-display text-xl font-bold text-slate-900 dark:text-slate-100">Set up your shop</h2>
           <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">You'll be the owner — invite your staff once you're in.</p>
           <form className="mt-4 flex flex-col gap-3" onSubmit={handleSignup}>
-            <input
-              value={shopName}
-              required
-              onChange={(event) => setShopName(event.target.value)}
-              placeholder="Shop name"
-              aria-label="Shop name"
-              className={INPUT_CLASS}
-            />
-            <input
-              type="email"
-              required
-              value={email}
-              onChange={(event) => setEmail(event.target.value)}
-              placeholder="you@shop.com"
-              aria-label="Email"
-              className={INPUT_CLASS}
-            />
-            <input
-              type="password"
-              required
-              value={password}
-              onChange={(event) => setPassword(event.target.value)}
-              placeholder="Password (8+ characters)"
-              aria-label="Password"
-              className={INPUT_CLASS}
-            />
-            {error && <p className="text-xs text-red-600 dark:text-red-400">{error}</p>}
+            <Field icon={<Store className="h-4 w-4" />}>
+              <input
+                value={shopName}
+                required
+                onChange={(event) => setShopName(event.target.value)}
+                placeholder="Shop name"
+                aria-label="Shop name"
+                className={INPUT_CLASS}
+              />
+            </Field>
+            <Field icon={<Mail className="h-4 w-4" />}>
+              <input
+                type="email"
+                required
+                value={email}
+                onChange={(event) => setEmail(event.target.value)}
+                placeholder="you@shop.com"
+                aria-label="Email"
+                className={INPUT_CLASS}
+              />
+            </Field>
+            <Field
+              icon={<Lock className="h-4 w-4" />}
+              trailing={<PasswordVisibilityToggle visible={showPassword} onToggle={() => setShowPassword((v) => !v)} />}
+            >
+              <input
+                type={showPassword ? "text" : "password"}
+                required
+                value={password}
+                onChange={(event) => setPassword(event.target.value)}
+                placeholder="Password (8+ characters)"
+                aria-label="Password"
+                className={INPUT_CLASS}
+              />
+            </Field>
+            {error && (
+              <p className="flex items-center gap-1.5 text-xs text-red-600 dark:text-red-400">
+                <AlertCircle className="h-3.5 w-3.5 shrink-0" />
+                {error}
+              </p>
+            )}
             <button type="submit" disabled={busy} className={SUBMIT_CLASS}>
-              Create account <ArrowRightIcon className="h-4 w-4" />
+              {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <>Create account <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" /></>}
             </button>
           </form>
           <button
@@ -184,57 +256,73 @@ export function AuthPanel() {
           >
             Already have an account? Sign in
           </button>
-        </>
+        </div>
       )}
 
       {mode === "confirm" && (
-        <>
-          <h2 className="text-xl font-bold text-slate-900 dark:text-slate-100">Check your email</h2>
+        <div className="animate-fade-in">
+          <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-indigo-50 text-indigo-600 dark:bg-indigo-950/60 dark:text-indigo-400">
+            <Mail className="h-5 w-5" />
+          </div>
+          <h2 className="mt-3 font-display text-xl font-bold text-slate-900 dark:text-slate-100">Check your email</h2>
           <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">Enter the confirmation code we sent to {email}.</p>
           <form className="mt-4 flex flex-col gap-3" onSubmit={handleConfirm}>
-            <input
-              value={code}
-              required
-              onChange={(event) => setCode(event.target.value)}
-              placeholder="Confirmation code"
-              aria-label="Confirmation code"
-              className={INPUT_CLASS}
-            />
-            {error && <p className="text-xs text-red-600 dark:text-red-400">{error}</p>}
+            <Field icon={<KeyRound className="h-4 w-4" />}>
+              <input
+                value={code}
+                required
+                onChange={(event) => setCode(event.target.value)}
+                placeholder="Confirmation code"
+                aria-label="Confirmation code"
+                className={INPUT_CLASS}
+              />
+            </Field>
+            {error && (
+              <p className="flex items-center gap-1.5 text-xs text-red-600 dark:text-red-400">
+                <AlertCircle className="h-3.5 w-3.5 shrink-0" />
+                {error}
+              </p>
+            )}
             <button type="submit" disabled={busy} className={SUBMIT_CLASS}>
-              Confirm <ArrowRightIcon className="h-4 w-4" />
+              {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <>Confirm <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" /></>}
             </button>
           </form>
-          <button
-            type="button"
-            onClick={() => void resendConfirmationCode(email)}
-            className={LINK_CLASS}
-          >
+          <button type="button" onClick={() => void resendConfirmationCode(email)} className={LINK_CLASS}>
             Resend code
           </button>
-        </>
+        </div>
       )}
 
       {mode === "new_password" && (
-        <>
-          <h2 className="text-xl font-bold text-slate-900 dark:text-slate-100">Choose a password</h2>
+        <div className="animate-fade-in">
+          <h2 className="font-display text-xl font-bold text-slate-900 dark:text-slate-100">Choose a password</h2>
           <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">First sign-in on an invited account — set your own password to continue.</p>
           <form className="mt-4 flex flex-col gap-3" onSubmit={handleNewPassword}>
-            <input
-              type="password"
-              required
-              value={newPassword}
-              onChange={(event) => setNewPassword(event.target.value)}
-              placeholder="New password (8+ characters)"
-              aria-label="New password"
-              className={INPUT_CLASS}
-            />
-            {error && <p className="text-xs text-red-600 dark:text-red-400">{error}</p>}
+            <Field
+              icon={<Lock className="h-4 w-4" />}
+              trailing={<PasswordVisibilityToggle visible={showPassword} onToggle={() => setShowPassword((v) => !v)} />}
+            >
+              <input
+                type={showPassword ? "text" : "password"}
+                required
+                value={newPassword}
+                onChange={(event) => setNewPassword(event.target.value)}
+                placeholder="New password (8+ characters)"
+                aria-label="New password"
+                className={INPUT_CLASS}
+              />
+            </Field>
+            {error && (
+              <p className="flex items-center gap-1.5 text-xs text-red-600 dark:text-red-400">
+                <AlertCircle className="h-3.5 w-3.5 shrink-0" />
+                {error}
+              </p>
+            )}
             <button type="submit" disabled={busy} className={SUBMIT_CLASS}>
-              Set password and continue <ArrowRightIcon className="h-4 w-4" />
+              {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <>Set password and continue <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" /></>}
             </button>
           </form>
-        </>
+        </div>
       )}
     </div>
   );

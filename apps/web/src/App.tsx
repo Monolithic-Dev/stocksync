@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { LayoutGrid, Package, ShoppingCart, LayoutDashboard, Users, Boxes, LogOut } from "lucide-react";
 import { AuthProvider, useAuth, type AuthUser } from "./state/AuthContext";
 import { ShopProvider } from "./state/ShopContext";
 import { ThemeProvider } from "./state/ThemeContext";
@@ -22,16 +23,18 @@ function readCounterIdFromUrl(): string | null {
 }
 
 const NAV_LINKS = [
-  { page: "counter", label: "Counter", roles: ["owner", "manager", "counter_staff"] },
-  { page: "products", label: "Products", roles: ["owner", "manager", "counter_staff"] },
-  { page: "checkout", label: "Checkout", roles: ["owner", "manager", "counter_staff"] },
-  { page: "dashboard", label: "Dashboard", roles: ["owner", "manager"] },
-  { page: "staff", label: "Staff", roles: ["owner"] },
+  { page: "counter", label: "Counter", icon: LayoutGrid, roles: ["owner", "manager", "counter_staff"] },
+  { page: "products", label: "Products", icon: Package, roles: ["owner", "manager", "counter_staff"] },
+  { page: "checkout", label: "Checkout", icon: ShoppingCart, roles: ["owner", "manager", "counter_staff"] },
+  { page: "dashboard", label: "Dashboard", icon: LayoutDashboard, roles: ["owner", "manager"] },
+  { page: "staff", label: "Staff", icon: Users, roles: ["owner"] },
 ] as const;
 
 interface AuthedAppProps {
   shopId: string;
   role: "owner" | "manager" | "counter_staff";
+  user: AuthUser;
+  onSignOut: () => void;
 }
 
 /**
@@ -41,7 +44,7 @@ interface AuthedAppProps {
  * page switch stays deliberately not a routing library — see the
  * original comment this replaced in git history for why.
  */
-function AuthedApp({ shopId, role }: AuthedAppProps) {
+function AuthedApp({ shopId, role, user, onSignOut }: AuthedAppProps) {
   const [counterId, setCounterId] = useState<string | null>(readCounterIdFromUrl);
   const page = useQueryParam("page", "counter");
 
@@ -54,8 +57,11 @@ function AuthedApp({ shopId, role }: AuthedAppProps) {
 
   if (!counterId) {
     return (
-      <div className="flex min-h-screen items-center justify-center px-4">
-        <CounterPicker onEnter={handleEnterCounter} />
+      <div>
+        <TopBar user={user} onSignOut={onSignOut} links={[]} activePage="" counterId="" />
+        <div className="flex min-h-[calc(100vh-57px)] items-center justify-center px-4">
+          <CounterPicker onEnter={handleEnterCounter} />
+        </div>
       </div>
     );
   }
@@ -64,21 +70,7 @@ function AuthedApp({ shopId, role }: AuthedAppProps) {
 
   return (
     <ShopProvider>
-      <nav className="mx-auto flex max-w-3xl gap-4 px-4 pt-4 text-sm sm:px-6">
-        {visibleLinks.map((link) => (
-          <a
-            key={link.page}
-            href={`?page=${link.page}&counter_id=${counterId}`}
-            className={
-              page === link.page
-                ? "font-semibold text-slate-900 dark:text-slate-100"
-                : "text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200"
-            }
-          >
-            {link.label}
-          </a>
-        ))}
-      </nav>
+      <TopBar user={user} onSignOut={onSignOut} links={visibleLinks} activePage={page} counterId={counterId} />
       {page === "products" && <ProductsPage shopId={shopId} />}
       {page === "checkout" && <CheckoutPage shopId={shopId} counterId={counterId} />}
       {page === "dashboard" && (role === "owner" || role === "manager") && <DashboardPage shopId={shopId} />}
@@ -88,15 +80,69 @@ function AuthedApp({ shopId, role }: AuthedAppProps) {
   );
 }
 
-function TopBar({ user, onSignOut }: { user: AuthUser; onSignOut: () => void }) {
+interface NavLink {
+  page: string;
+  label: string;
+  icon: typeof LayoutGrid;
+  roles: readonly string[];
+}
+
+interface TopBarProps {
+  user: AuthUser;
+  onSignOut: () => void;
+  links: readonly NavLink[];
+  activePage: string;
+  counterId: string;
+}
+
+function TopBar({ user, onSignOut, links, activePage, counterId }: TopBarProps) {
   return (
-    <div className="mx-auto flex max-w-3xl items-center justify-end gap-3 px-4 pt-3 text-xs text-slate-400 sm:px-6">
-      <span>{user.email}</span>
-      <button type="button" onClick={onSignOut} className="underline decoration-dotted hover:text-slate-600 dark:hover:text-slate-200">
-        Sign out
-      </button>
-      <ThemeToggle />
-    </div>
+    <header className="sticky top-0 z-20 border-b border-slate-200/70 bg-white/80 backdrop-blur-md dark:border-slate-800/70 dark:bg-slate-950/80">
+      <div className="mx-auto flex max-w-4xl items-center justify-between gap-3 px-4 py-2.5 sm:px-6">
+        <div className="flex items-center gap-2">
+          <div className="flex h-7 w-7 items-center justify-center rounded-md bg-gradient-to-br from-indigo-500 to-indigo-700 text-white">
+            <Boxes className="h-4 w-4" strokeWidth={2.25} />
+          </div>
+          <span className="hidden font-display text-sm font-bold tracking-tight text-slate-900 dark:text-slate-100 sm:inline">
+            StockSync
+          </span>
+        </div>
+
+        <nav className="flex flex-1 items-center justify-center gap-1 overflow-x-auto text-sm">
+          {links.map((link) => {
+            const isActive = activePage === link.page;
+            return (
+              <a
+                key={link.page}
+                href={`?page=${link.page}&counter_id=${counterId}`}
+                className={`flex items-center gap-1.5 whitespace-nowrap rounded-md px-2.5 py-1.5 text-xs font-medium transition-colors sm:text-sm ${
+                  isActive
+                    ? "bg-indigo-50 text-indigo-700 dark:bg-indigo-950/60 dark:text-indigo-300"
+                    : "text-slate-500 hover:bg-slate-100 hover:text-slate-800 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-slate-200"
+                }`}
+              >
+                <link.icon className="h-3.5 w-3.5" strokeWidth={2} />
+                {link.label}
+              </a>
+            );
+          })}
+        </nav>
+
+        <div className="flex items-center gap-2.5">
+          <span className="hidden max-w-[10rem] truncate text-xs text-slate-500 dark:text-slate-400 md:inline">{user.email}</span>
+          <button
+            type="button"
+            onClick={onSignOut}
+            title="Sign out"
+            aria-label="Sign out"
+            className="flex h-8 w-8 items-center justify-center rounded-full text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-700 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-slate-200"
+          >
+            <LogOut className="h-4 w-4" strokeWidth={2} />
+          </button>
+          <ThemeToggle />
+        </div>
+      </div>
+    </header>
   );
 }
 
@@ -113,12 +159,7 @@ function AppShell() {
     return <HeroPage />;
   }
 
-  return (
-    <div>
-      <TopBar user={user} onSignOut={signOut} />
-      <AuthedApp shopId={user.shopId} role={user.role ?? "counter_staff"} />
-    </div>
-  );
+  return <AuthedApp shopId={user.shopId} role={user.role ?? "counter_staff"} user={user} onSignOut={signOut} />;
 }
 
 export function App() {
