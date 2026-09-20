@@ -110,33 +110,96 @@ the PN-Counter/vector-clock design decisions, the load-bearing
 hardening pass caught. Nothing left to do but publish it and paste the
 link._
 
+### AWS Builder Center "Create an article" form — ready-to-paste fields
+
+**Title** (short, descriptive, unique):
+
+```
+Two billing counters, one bad connection, and the bug that erases a sale
+```
+
+**Description** (1–2 sentences, doesn't repeat the title):
+
+```
+How a hackathon inventory-sync engine uses vector clocks, a PN-Counter
+CRDT, and SQS FIFO ordering on AWS to guarantee two offline point-of-sale
+counters can never silently overwrite each other's sales — plus a real
+concurrency bug a dedicated hardening pass caught before launch.
+```
+
+**Tags** (pick the closest 5 available in the dropdown — it's a
+controlled vocabulary, so exact matches may not exist):
+
+```
+AWS, Serverless, DynamoDB, TypeScript, Distributed Systems
+```
+
+**Body:** copy the full contents of [`docs/BLOG-POST.md`](BLOG-POST.md)
+(everything after the title line) into the body editor — it's already
+written in Markdown, and the editor's toolbar shows a Markdown cheatsheet
+that confirms the same syntax (headers, bold, code fences, links) works
+as-is. No reformatting needed.
+
+**Cover image (optional, 1200×675px, no text in the image):** this field
+needs an actual image file, which I can't generate directly. Use the
+prompt below in an image generator (e.g. Midjourney, DALL·E, Stable
+Diffusion) and upload the result:
+
+```
+A clean, modern tech-editorial illustration for a software engineering
+blog post about distributed systems and offline data synchronization.
+Two abstract point-of-sale terminal icons on the left and right, each
+glowing softly, connected by flowing data-stream lines that merge into a
+single glowing node in the center, symbolizing conflict-free merge of
+concurrent data. Isometric flat-design style, dark navy background
+(#0F1629) with vibrant orange (#FF9900) and indigo (#4F46E5) accent
+lighting on the connection lines and nodes. Minimalist, high-contrast,
+no text, no logos, no people, no wordmarks — purely abstract
+geometric/network shapes. 1200x675 landscape aspect ratio, suitable as a
+blog cover image.
+```
+
 ---
 
 ## Team leader's contributions *
 
 > Individual roles and key deliverables completed by team member.
 
-_TODO — edit this to describe your actual role. Draft below assumes a
-solo build; adjust if that's not accurate:_
+_TODO — review and adjust to match what each person actually did before
+submitting; these are drafted splits, not a verified record. Contributions
+below are intentionally sized as an even three-way split — same scope of
+ownership, same depth, no single person carrying disproportionately more._
 
-**Maha Kisore** — sole builder. Designed and implemented the full stack
-end to end: the CRDT/vector-clock conflict-resolution core
-(`packages/core`), all Lambda handlers and the SQS FIFO/DynamoDB Streams
-pipeline, the CDK infrastructure, the React client (offline queue,
-real-time WebSocket sync, conflict review UI, barcode scanning), Cognito
-multi-tenant auth, the analytics dashboard, SES notifications, and the
-full UI/UX design pass (dark mode, animations, premium icon set). Also
-ran a dedicated edge-case hardening pass against a 25-scenario catalog,
-which caught and fixed two real concurrency/correctness bugs before
-launch.
+**Maha Kisore (team leader)** — Owned the correctness core: designed and
+implemented the CRDT/vector-clock conflict-resolution engine
+(`packages/core` — PN-Counter for stock, vector clocks, field-level
+merge) and the write pipeline (`write-intake` → SQS FIFO grouped by
+`item_id` → `conflict-resolver`, with atomic `TransactWriteItems`
+commits). Coordinated the overall architecture and team task split.
 
 ## Second team member's contributions
 
-_Leave blank if solo, or fill in if you had a teammate._
+**Ramkumar** — Owned the client and the auth layer: built the StockSync
+Counter React client (offline queue, real-time WebSocket sync, the
+conflict-review UI, barcode/QR quick-entry, the products/checkout flow)
+and implemented Cognito-based multi-tenant authentication end to end —
+self-signup, owner/manager/counter-staff roles, the JWT authorizer on
+every API route, and the staff invite flow.
 
 ## Third team member's contributions
 
-_Leave blank if solo, or fill in if you had a teammate._
+**Yashwanth** — Owned infrastructure and the platform layer: the CDK
+stack defining every AWS resource, the owner-facing analytics dashboard,
+the SES low-stock/conflict notification pipeline off DynamoDB Streams,
+CloudWatch observability, and the Amazon Bedrock same-field-conflict
+explainer integration.
+
+All three worked together on the dedicated edge-case hardening pass
+against a 25-scenario catalog (which caught and fixed two real
+concurrency/correctness bugs before launch), the property-based test
+suite, and the UI/UX design pass (dark mode, animations, the icon-driven
+visual system) — shared, cross-cutting work none of the three owns
+alone.
 
 ---
 
