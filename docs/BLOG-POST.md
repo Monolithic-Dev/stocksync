@@ -70,19 +70,29 @@ advisory-only: it explains, it never decides.
 
 ## The architecture, and why each piece is load-bearing
 
-```
-StockSync Counter (React, IndexedDB offline queue)
-        │ POST /transactions               ▲ WSS live push
-        ▼                                   │
-API Gateway (REST + WebSocket)
-        │
-        ▼
-Lambda: write-intake → SQS FIFO (MessageGroupId = item_id) → Lambda: conflict-resolver
-        │ idempotency check                         │ vector-clock / PN-Counter merge
-        │                                            │ TransactWriteItems (record + audit + dedup)
-        ▼                                            │ Bedrock explanation (non-blocking)
-                    Amazon DynamoDB                   ▼
-```
+A write makes one trip down this pipeline, and the live push back to
+every open counter is a separate hop off the same event:
+
+1. **StockSync Counter** (React, IndexedDB offline queue) sends
+   `POST /transactions` — queued locally first, so a flaky connection
+   never blocks a sale.
+2. **API Gateway** (REST) receives it and hands off to Lambda.
+3. **Lambda `write-intake`** does the idempotency check, then enqueues.
+4. **SQS FIFO**, grouped by `MessageGroupId = item_id` — not by which
+   counter sent it — so every write touching one item is processed in
+   strict order, no matter how many counters are concurrently active.
+5. **Lambda `conflict-resolver`** does the actual merge: vector-clock
+   comparison, PN-Counter arithmetic for stock, field-level merge for
+   everything else. It commits the record, its audit-log entry, and its
+   idempotency claim together via `TransactWriteItems`, and — only on a
+   genuine same-field conflict — asks **Amazon Bedrock** for a
+   plain-language explanation, non-blocking.
+6. **Amazon DynamoDB** is the single source of truth the whole pipeline
+   converges on.
+7. A DynamoDB Streams event off that same write fans out through
+   **API Gateway's WebSocket API** as a live push (`WSS`) back to every
+   other open counter — so a second screen sees the new stock count
+   arrive without ever polling for it.
 
 The detail that matters most and is easiest to get wrong: the **SQS FIFO
 queue's `MessageGroupId` is the inventory item's ID, not the sending
