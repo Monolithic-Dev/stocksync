@@ -1,45 +1,48 @@
-# StockSync — 3-Minute Submission Video Script
+# StockSync — 3-Minute Submission Video: Editing Guide + Script
 
-A second-by-second script for the required demo video. The submission
-form asks for ≤3 minutes covering four things — this script is built so
-each one gets a dedicated, timestamped beat instead of being squeezed in:
+You already have real footage: **`demo-assets/stocksync-demo-silent.mp4`**
+(43 seconds, silent, at the repo root, gitignored). It's raw B-roll of an
+actual automated run against the live app — not long enough to fill 3
+minutes on its own. This doc tells you exactly which few seconds of that
+file to use under each beat of the narration, and how to stretch each
+segment to fill its beat's time (mostly: freeze the last frame and hold
+it while you keep talking). Timestamps below are read directly off the
+real file, not estimated.
 
-1. About the project
-2. Tech stack and architecture
-3. How you used AWS
-4. Learning and growth
-
-**Total runtime budget: 180 seconds.** Each beat below has an exact
-start/end timestamp, the literal words to say (read it near-verbatim —
-it's paced to fit), and exactly what should be on screen. Rehearse with a
-stopwatch; if a beat runs long, trim adjectives, never cut a beat
-entirely — each one exists to hit one of the four required points.
-
-Pre-requisite: read [`docs/general/10-DEMO-PLAN.md`](general/10-DEMO-PLAN.md)
-first — its rehearsal checklist (10 consecutive Playwright passes, 5
-consecutive manual runs) applies before you record this for real.
+**Total runtime budget: 180 seconds**, covering the four things the
+submission form requires: about the project, tech stack/architecture, AWS
+usage, learning/growth.
 
 ---
 
-## Setup, before you hit record
+## How to build the final cut, mechanically
 
-- Two browser windows side by side, signed into **the same shop**
-  (Cognito account), one as "Counter A", one as "Counter B" — both
-  showing the same seeded item, **Parle-G 100g, Stock: 50**. Shop
-  identity comes from sign-in now, not a URL param — see the demo plan's
-  §1 Setup for the exact flow.
-- A third tab ready on the **audit log** for that item.
-- A fourth tab ready on the **Dashboard** page.
-- Each counter window's in-UI offline toggle visible and reachable
-  without scrolling.
-- Live URL: `https://main.d18ash44o1uc8d.amplifyapp.com`
+1. Import `stocksync-demo-silent.mp4` into your editor (CapCut, DaVinci
+   Resolve, Premiere, even a phone editor — any editor that can freeze a
+   frame and trim clips works).
+2. For each beat below, cut out the **source range** listed and drop it
+   on the timeline.
+3. Where the source range is shorter than the beat's duration, **hold the
+   last frame** of that range for the remaining time (every editor has a
+   "freeze frame" or "extend still" option — right-click the clip's last
+   frame). This is why the numbers below always show a short "real
+   footage" range plus a "hold" instruction.
+4. Record yourself reading the **Say** line for that beat (or read the
+   whole transcript once as one continuous take, then line it up against
+   the cuts — easier if you're not confident about hitting exact beat
+   boundaries live).
+5. Two source ranges below are explicitly marked **skip this** — cut them
+   out entirely. They're redundant sign-in animations that happened
+   because each recording segment started its own browser session; you
+   don't need to show signing in three separate times.
 
 ---
 
-## 0:00 – 0:15 — About the project
+## Beat 1 — About the project (0:00–0:15, 15s)
 
-**Show:** The hero page (`https://main.d18ash44o1uc8d.amplifyapp.com`),
-then cut to the two counter windows side by side.
+**Source range:** 0:00–0:07 (hero page loading in, headline animating).
+**Hold:** freeze on 0:04–0:05 (headline fully settled) for the rest of
+the beat.
 
 **Say:**
 > "Small shops running two billing counters share one shaky connection.
@@ -49,11 +52,17 @@ then cut to the two counter windows side by side.
 
 ---
 
-## 0:15 – 0:50 — Cause the conflict, live
+## Beat 2 — Cause the conflict, live (0:15–0:50, 35s)
 
-**Show:** Click both counters' offline toggles, on screen, deliberately.
-Counter A sells 5 units, then 2 more. Counter B sells 3 units. Point at
-each stock number changing independently.
+**Source range:** 0:12–0:19 (skip 0:07–0:12 — that's a second, redundant
+sign-in from the next recording segment; start the cut at 0:12 where both
+counters already show the item grid, green "Online").
+**Hold:** freeze on 0:18–0:19 (both counters mid-sale, red "Offline") for
+the remainder of the beat.
+
+Real events inside this range, if you want to narrate in sync rather than
+just hold a still: 0:12–0:13 both Online → 0:14 both flip to Offline (red)
+→ 0:15–0:19 stock numbers drop on both sides as sales happen.
 
 **Say:**
 > "Both counters go offline — right now, live. Counter A sells 5, then 2
@@ -62,11 +71,12 @@ each stock number changing independently.
 
 ---
 
-## 0:50 – 1:25 — Reconnect and prove it with arithmetic
+## Beat 3 — Reconnect and prove it with arithmetic (0:50–1:25, 35s)
 
-**Show:** Click both counters back online. Let the stock number land on
-**40** on both screens. Cut to the audit log tab: three sales, correctly
-attributed, in order.
+**Source range:** 0:20–0:25 (0:20 is the reconnect/reload moment — you'll
+see a brief loading-skeleton flash — through 0:25, both counters green
+again, stock settled, audit trail opening).
+**Hold:** freeze on 0:24–0:25 (audit trail visible) for the remainder.
 
 **Say:**
 > "Reconnect both. Watch the number: 50, minus 5, minus 2, minus 3 — 40,
@@ -76,11 +86,22 @@ attributed, in order.
 
 ---
 
-## 1:25 – 1:50 — The hard case: same-field conflict + AI
+## Beat 4 — The hard case: same-field conflict + AI (1:25–1:50, 25s)
 
-**Show:** Both counters offline again. Counter A sets price to ₹10,
-Counter B sets it to ₹12. Reconnect. Show the conflict banner with both
-values and the Bedrock-generated explanation.
+**Source range:** 0:26–0:35 (0:26–0:27 both flip Offline again for the
+price edit, 0:28–0:29 the price fields get edited, 0:30–0:35 the amber
+"Conflicting 'price' value" banner appears and holds with both candidate
+values, 15 and 18).
+**Hold:** none needed — this range is almost exactly the beat's length.
+
+Note honestly, if it's visible in your footage: the banner shows
+"Generating explanation…" rather than actual Bedrock text, because the
+account's Bedrock access is still gated at recording time. If that's
+still true when you record narration, either say "calls Amazon Bedrock to
+explain" (accurate — it does call it, the call just hasn't cleared yet)
+or skip the word "explain" and just say it flags the conflict for a
+human. Don't claim the explanation text appears if the screen doesn't
+show it.
 
 **Say:**
 > "Here's the case that can't be auto-merged: both counters set a
@@ -90,11 +111,14 @@ values and the Bedrock-generated explanation.
 
 ---
 
-## 1:50 – 2:25 — Tech stack and architecture
+## Beat 5 — Tech stack and architecture (1:50–2:25, 35s)
 
-**Show:** Cut to a static view of the architecture diagram (screen-share
-the README's Mermaid diagram, or a slide built from it) while narrating.
-Point at each service as it's named.
+**Source range:** none — there's no footage of this, by design (the
+original demo plan calls for a diagram here, not more live UI). Use a
+static image instead: a screenshot of the Mermaid diagram in the
+[README](../README.md#architecture) (open the README on GitHub, where it
+renders, and screenshot it), or keep holding Beat 4's conflict-banner
+frame as quiet B-roll while you narrate over it — either works.
 
 **Say:**
 > "Under the hood: a React client with an IndexedDB offline queue talks
@@ -107,11 +131,14 @@ Point at each service as it's named.
 
 ---
 
-## 2:25 – 2:50 — How AWS powers the rest of the product
+## Beat 6 — How AWS powers the rest of the product (2:25–2:50, 25s)
 
-**Show:** Quick cuts: Cognito sign-in/sign-up screen → Dashboard page →
-a low-stock email notification (or the SES console showing it sent) →
-CloudWatch metrics dashboard.
+**Source range:** 0:41–0:43 (skip 0:36–0:41 — another redundant sign-in
+from the third recording segment; the dashboard itself only appears right
+at the very end of the file, from 0:41 to 0:43.2 when the footage ends).
+**Hold:** freeze on the last frame (0:43) for the rest of the beat — the
+dashboard cards (Total revenue, Last 7 days, Trust score, Low stock) are
+fully visible there.
 
 **Say:**
 > "Beyond the core engine: Amazon Cognito handles real multi-tenant
@@ -123,10 +150,11 @@ CloudWatch metrics dashboard.
 
 ---
 
-## 2:50 – 3:00 — Learning and growth, and the close
+## Beat 7 — Learning and growth, and the close (2:50–3:00, 10s)
 
-**Show:** Cut back to the hero page or a StockSync logo card as the final
-frame.
+**Source range:** none needed — reuse Beat 1's held hero-page frame
+(0:04–0:05), or cut to a plain StockSync logo card if you have one. A
+clean, static closing frame reads better here than more UI footage.
 
 **Say:**
 > "Building this taught me CRDTs aren't academic — they make 'offline
@@ -137,27 +165,33 @@ frame.
 
 ## Timing cheat-sheet
 
-| Beat | Start | End | Duration | Required point covered |
-|---|---|---|---|---|
-| About the project | 0:00 | 0:15 | 15s | ① About the project |
-| Cause the conflict | 0:15 | 0:50 | 35s | ① / proof of correctness |
-| Reconnect + arithmetic | 0:50 | 1:25 | 35s | ① / proof of correctness |
-| Same-field conflict + AI | 1:25 | 1:50 | 25s | ③ AWS usage (Bedrock) |
-| Tech stack & architecture | 1:50 | 2:25 | 35s | ② Tech stack and architecture |
-| AWS services tour | 2:25 | 2:50 | 25s | ③ How you used AWS |
-| Learning & growth + close | 2:50 | 3:00 | 10s | ④ Learning and growth |
+| Beat | Narration time | Source range used | Needs hold? |
+|---|---|---|---|
+| 1. About the project | 0:00–0:15 (15s) | 0:00–0:07 | Yes, ~8s |
+| 2. Cause the conflict | 0:15–0:50 (35s) | 0:12–0:19 | Yes, ~28s |
+| 3. Reconnect + arithmetic | 0:50–1:25 (35s) | 0:20–0:25 | Yes, ~30s |
+| 4. Same-field conflict + AI | 1:25–1:50 (25s) | 0:26–0:35 | No |
+| 5. Tech stack & architecture | 1:50–2:25 (35s) | none (use a diagram) | — |
+| 6. AWS services tour | 2:25–2:50 (25s) | 0:41–0:43 | Yes, ~23s |
+| 7. Learning & growth + close | 2:50–3:00 (10s) | reuse Beat 1's frame | Yes, ~10s |
 
-**Total: 180s / 3:00 exactly** — no slack, so rehearse each beat's timing
-individually before doing a full run. If you're consistently running
-long, the safest beat to trim is "Tech stack & architecture" (read it
-slightly faster) — never cut the live conflict demo, since that's the
-single most convincing thing a judge can watch happen.
+**Total: 180s / 3:00 exactly.** If a beat's narration runs a little
+faster or slower than planned when you actually record your voice, adjust
+the *hold* duration for that beat, not the source footage range — the
+source ranges above are the only "real" moments in the whole video;
+everything else is a held still frame, so they're the cheapest thing to
+stretch or compress.
 
-## If you're short on rehearsal time
+## If you'd rather re-record instead of editing a freeze-frame video
 
-The absolute minimum viable cut, if something goes wrong live and you
-need a fallback: beats 1–3 (0:00–1:25) prove the core claim on their own
-and satisfy "about the project." Beats 5–6 (tech stack + AWS usage) are
-required by the form, so don't skip them even under time pressure — trim
-their word count instead, using the bullet nouns (Cognito, SES,
-CloudWatch, CDK) as a minimum rather than the full sentences above.
+Every action in the footage was driven by a Playwright script that's no
+longer in the repo (cleaned up after recording), but the exact choreography
+is: sign in on two browser windows as the same shop account, pick "Counter
+A" / "Counter B", toggle both offline, sell 5+2 on A and 3 on B, reconnect,
+open the audit trail for "parle-g", toggle offline again, set the price to
+two different values on each counter, reconnect. If you'd rather perform
+this live on camera at a natural pace (filling the full 3 minutes without
+any freeze-frames), that's also completely valid — see
+[`docs/general/10-DEMO-PLAN.md`](general/10-DEMO-PLAN.md) for the
+original live-performance version of this same script, including the
+rehearsal checklist.
