@@ -110,6 +110,55 @@ the PN-Counter/vector-clock design decisions, the load-bearing
 hardening pass caught. Nothing left to do but publish it and paste the
 link._
 
+### AWS Builder Center "Create an article" form — ready-to-paste fields
+
+**Title** (short, descriptive, unique):
+
+```
+Two billing counters, one bad connection, and the bug that erases a sale
+```
+
+**Description** (1–2 sentences, doesn't repeat the title):
+
+```
+How a hackathon inventory-sync engine uses vector clocks, a PN-Counter
+CRDT, and SQS FIFO ordering on AWS to guarantee two offline point-of-sale
+counters can never silently overwrite each other's sales — plus a real
+concurrency bug a dedicated hardening pass caught before launch.
+```
+
+**Tags** (pick the closest 5 available in the dropdown — it's a
+controlled vocabulary, so exact matches may not exist):
+
+```
+AWS, Serverless, DynamoDB, TypeScript, Distributed Systems
+```
+
+**Body:** copy the full contents of [`docs/BLOG-POST.md`](BLOG-POST.md)
+(everything after the title line) into the body editor — it's already
+written in Markdown, and the editor's toolbar shows a Markdown cheatsheet
+that confirms the same syntax (headers, bold, code fences, links) works
+as-is. No reformatting needed.
+
+**Cover image (optional, 1200×675px, no text in the image):** this field
+needs an actual image file, which I can't generate directly. Use the
+prompt below in an image generator (e.g. Midjourney, DALL·E, Stable
+Diffusion) and upload the result:
+
+```
+A clean, modern tech-editorial illustration for a software engineering
+blog post about distributed systems and offline data synchronization.
+Two abstract point-of-sale terminal icons on the left and right, each
+glowing softly, connected by flowing data-stream lines that merge into a
+single glowing node in the center, symbolizing conflict-free merge of
+concurrent data. Isometric flat-design style, dark navy background
+(#0F1629) with vibrant orange (#FF9900) and indigo (#4F46E5) accent
+lighting on the connection lines and nodes. Minimalist, high-contrast,
+no text, no logos, no people, no wordmarks — purely abstract
+geometric/network shapes. 1200x675 landscape aspect ratio, suitable as a
+blog cover image.
+```
+
 ---
 
 ## Team leader's contributions *
