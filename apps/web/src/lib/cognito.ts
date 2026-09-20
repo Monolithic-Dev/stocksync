@@ -40,7 +40,17 @@ export interface IdTokenClaims {
 export function decodeIdToken(idToken: string): IdTokenClaims {
   const [, payloadB64] = idToken.split(".");
   const payload = JSON.parse(atob(payloadB64.replace(/-/g, "+").replace(/_/g, "/"))) as Record<string, unknown>;
-  const groups = typeof payload["cognito:groups"] === "string" ? (payload["cognito:groups"] as string) : "";
+  // A real Cognito ID token encodes `cognito:groups` as a genuine JSON
+  // array (e.g. ["owner"]); API Gateway's HTTP API JWT authorizer is the
+  // only place that ever flattens it to a comma-separated string (see
+  // authContext.ts) — this decodes the token directly, so both shapes
+  // need handling here.
+  const rawGroups = payload["cognito:groups"];
+  const groups = Array.isArray(rawGroups)
+    ? rawGroups.map(String)
+    : typeof rawGroups === "string"
+      ? rawGroups.split(",").map((group) => group.trim())
+      : [];
   const role = (["owner", "manager", "counter_staff"] as const).find((candidate) => groups.includes(candidate));
   return {
     sub: payload.sub as string,
