@@ -165,27 +165,44 @@ blog cover image.
 
 > Individual roles and key deliverables completed by team member.
 
-_TODO — edit this to describe your actual role. Draft below assumes a
-solo build; adjust if that's not accurate:_
+_TODO — review and adjust to match what each person actually did before
+submitting; these are drafted splits, not a verified record._
 
-**Maha Kisore** — sole builder. Designed and implemented the full stack
-end to end: the CRDT/vector-clock conflict-resolution core
-(`packages/core`), all Lambda handlers and the SQS FIFO/DynamoDB Streams
-pipeline, the CDK infrastructure, the React client (offline queue,
-real-time WebSocket sync, conflict review UI, barcode scanning), Cognito
-multi-tenant auth, the analytics dashboard, SES notifications, and the
-full UI/UX design pass (dark mode, animations, premium icon set). Also
-ran a dedicated edge-case hardening pass against a 25-scenario catalog,
-which caught and fixed two real concurrency/correctness bugs before
-launch.
+**Maha Kisore (team leader)** — Owned the system's correctness core and
+overall architecture. Designed and implemented the CRDT/vector-clock
+conflict-resolution engine (`packages/core`: PN-Counter for stock,
+vector clocks, field-level merge), the write pipeline (`write-intake` →
+SQS FIFO grouped by `item_id` → `conflict-resolver`, with atomic
+`TransactWriteItems` commits), and the CDK infrastructure defining every
+AWS resource in the stack. Also led the dedicated edge-case hardening
+pass against a 25-scenario catalog, which caught and fixed two real
+concurrency/correctness bugs before launch, and wrote the property-based
+tests proving the PN-Counter merge is commutative and associative.
 
 ## Second team member's contributions
 
-_Leave blank if solo, or fill in if you had a teammate._
+**Ramkumar** — Owned the client and the auth/multi-tenant layer. Built
+the StockSync Counter React client: the offline queue (IndexedDB),
+real-time WebSocket sync, the conflict-review UI, barcode/QR quick-entry,
+and the products/checkout flow. Implemented Cognito-based multi-tenant
+authentication end to end — self-signup, owner/manager/counter-staff
+roles, the JWT authorizer wired into every API route, and the staff
+invite flow. Also led the full UI/UX redesign pass: the hero and
+sign-in/sign-up screens, dark mode, and the animated, icon-driven visual
+system used throughout the app.
 
 ## Third team member's contributions
 
-_Leave blank if solo, or fill in if you had a teammate._
+**Yashwanth** — Owned observability, notifications, and the AI-assisted
+feature surface. Built the owner-facing analytics dashboard (sales/
+revenue rollups, the trust-score conflict-rate metric), the SES
+low-stock/conflict email notification pipeline off DynamoDB Streams, and
+the CloudWatch metrics/dashboards (`ConflictRate`, `IdempotencyHitRate`).
+Integrated Amazon Bedrock for the plain-language same-field-conflict
+explainer, kept strictly advisory per design, and worked through the
+account-level Bedrock access gating to get it running end to end. Also
+drove test coverage on the API layer, including the DynamoDB-Local
+integration suite.
 
 ---
 
