@@ -216,7 +216,7 @@ async function main(): Promise<void> {
   app.use(express.json());
   app.use((_req, res, next) => {
     res.header("Access-Control-Allow-Origin", "*");
-    res.header("Access-Control-Allow-Headers", "content-type, x-api-key");
+    res.header("Access-Control-Allow-Headers", "content-type, x-api-key, authorization");
     next();
   });
 

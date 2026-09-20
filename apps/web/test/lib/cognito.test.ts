@@ -37,8 +37,13 @@ describe("decodeIdToken", () => {
     expect(decodeIdToken(token)).toEqual({ sub: "abc", email: "a@b.com", shopId: "shop-123", role: undefined });
   });
 
-  it("resolves the role from a comma-flattened cognito:groups claim", () => {
+  it("resolves the role from a comma-flattened cognito:groups claim (API Gateway JWT authorizer shape)", () => {
     const token = fakeIdToken({ sub: "abc", "cognito:groups": "owner" });
+    expect(decodeIdToken(token).role).toBe("owner");
+  });
+
+  it("resolves the role from a real Cognito ID token's array-shaped cognito:groups claim", () => {
+    const token = fakeIdToken({ sub: "abc", "cognito:groups": ["owner"] });
     expect(decodeIdToken(token).role).toBe("owner");
   });
 
