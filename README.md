@@ -1,7 +1,25 @@
+<div align="center">
+
 # StockSync
+
+**Inventory that never loses a sale — even offline.**
 
 An offline-first inventory sync engine for kirana shops running more than
 one billing counter on a single, often-unreliable internet connection.
+
+[![CI](https://github.com/Monolithic-Dev/stocksync/actions/workflows/ci.yml/badge.svg)](https://github.com/Monolithic-Dev/stocksync/actions)
+[![License: Apache 2.0](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](LICENSE)
+![TypeScript](https://img.shields.io/badge/TypeScript-3178C6?logo=typescript&logoColor=white)
+![AWS CDK](https://img.shields.io/badge/AWS%20CDK-FF9900?logo=amazonaws&logoColor=white)
+![React](https://img.shields.io/badge/React-61DAFB?logo=react&logoColor=black)
+![DynamoDB](https://img.shields.io/badge/DynamoDB-4053D6?logo=amazondynamodb&logoColor=white)
+
+[**Live demo**](https://main.d18ash44o1uc8d.amplifyapp.com) · [Demo video](#) · [Architecture](#architecture) · [Docs](docs/general/00-INDEX.md)
+
+</div>
+
+---
+
 Two counters can sell the same item while both are offline, for any
 duration, in any order — and when they reconnect, StockSync guarantees the
 stock count reconciles to one mathematically correct, non-lossy state,
@@ -10,11 +28,24 @@ with a minimal client, **StockSync Counter**, that exists to make the
 engine's correctness demonstrable on screen, not to be a sellable
 point-of-sale product.
 
-- **Live demo:** https://main.d18ash44o1uc8d.amplifyapp.com
-  (sign up to create a shop, or sign in to an existing one — shop identity now comes from your
-  Cognito account, not a URL query param; open a second window signed into the same shop to see
-  the two-counter conflict scenario)
-- **Demo video:** _TODO — add the recorded demo video link here._
+> **Live demo:** https://main.d18ash44o1uc8d.amplifyapp.com
+> — sign up to create a shop, or sign in to an existing one (shop identity
+> comes from your Cognito account, not a URL query param); open a second
+> window signed into the same shop to see the two-counter conflict scenario.
+>
+> **Demo video:** _TODO — add the recorded demo video link here._
+
+## Contents
+
+- [The problem, in one paragraph](#the-problem-in-one-paragraph)
+- [Architecture](#architecture)
+- [What makes this correct, not just working](#what-makes-this-correct-not-just-working)
+- [Running it locally](#running-it-locally)
+- [What we learned](#what-we-learned)
+- [Project structure](#project-structure)
+- [Scope](#scope)
+- [Beyond the core sync engine — also shipped](#beyond-the-core-sync-engine--also-shipped)
+- [Where this goes next](#where-this-goes-next)
 
 ## The problem, in one paragraph
 
@@ -31,23 +62,76 @@ concurrent changes to the same shared number correctly, which is exactly
 what a CRDT is built for. See [`docs/general/01-PRD.md`](docs/general/01-PRD.md)
 §2 for the full problem statement.
 
-## Architecture, summarized
+## Architecture
 
+```mermaid
+flowchart TB
+    subgraph Client["StockSync Counter — React"]
+        UI["Offline queue (IndexedDB)"]
+    end
+
+    subgraph Gateway["Amazon API Gateway"]
+        REST["REST API<br/>Cognito JWT authorizer"]
+        WS["WebSocket API<br/>$connect / $disconnect"]
+    end
+
+    subgraph Compute["AWS Lambda"]
+        Intake["write-intake<br/>idempotency check"]
+        Resolver["conflict-resolver<br/>packages/core merge logic"]
+        Push["ws-push"]
+        Notify["notify-alerts"]
+        Auth["Cognito triggers<br/>postConfirmation · staffInvite"]
+    end
+
+    Queue["Amazon SQS FIFO<br/>MessageGroupId = item_id"]
+
+    subgraph Data["Amazon DynamoDB"]
+        Records[("inventory_records")]
+        Dedup[("write_dedup")]
+        Audit[("audit_log")]
+        Conns[("ws_connections")]
+    end
+
+    Streams["DynamoDB Streams"]
+    Bedrock["Amazon Bedrock<br/>conflict explanations · advisory only"]
+    SES["Amazon SES<br/>low-stock / conflict emails"]
+    Cognito["Amazon Cognito<br/>owner · manager · counter_staff"]
+    CW["Amazon CloudWatch<br/>ConflictRate · IdempotencyHitRate"]
+
+    UI -- "POST /transactions" --> REST
+    REST --> Intake
+    Intake -- "enqueue, ordered per item" --> Queue
+    Queue --> Resolver
+    Resolver -- "TransactWriteItems" --> Records
+    Resolver --> Dedup
+    Resolver --> Audit
+    Resolver -. "same-field conflict" .-> Bedrock
+    Records --> Streams
+    Streams --> Push
+    Streams --> Notify
+    Push -- "WSS live push" --> WS
+    WS --> UI
+    Notify --> SES
+    Cognito --> Auth
+    Auth -. "owner group on signup" .-> Records
+    REST -. verifies JWT .-> Cognito
+    Compute -. "ConflictRate / IdempotencyHitRate" .-> CW
+
+    classDef aws fill:#FF9900,stroke:#232F3E,color:#232F3E,font-weight:bold;
+    classDef data fill:#4053D6,stroke:#232F3E,color:#fff,font-weight:bold;
+    classDef client fill:#61DAFB,stroke:#232F3E,color:#232F3E,font-weight:bold;
+    class REST,WS,Queue,Bedrock,SES,Cognito,CW aws;
+    class Records,Dedup,Audit,Conns data;
+    class UI client;
 ```
-StockSync Counter (React, offline queue via IndexedDB)
-        │ POST /transactions               ▲ WSS live push
-        ▼                                   │
-API Gateway (REST + WebSocket)
-        │
-        ▼
-Lambda: write-intake  →  SQS FIFO (MessageGroupId = item_id)  →  Lambda: conflict-resolver
-        │  idempotency check via write_dedup      │  imports packages/core for all merge logic
-        │                                          │  TransactWriteItems: inventory_records + audit_log + write_dedup
-        │                                          │  Bedrock for same-field conflict explanations (non-blocking)
-        ▼                                          ▼
-                    Amazon DynamoDB
-   inventory_records / write_dedup / audit_log / ws_connections
-```
+
+The detail that matters most and is easiest to get wrong: **`MessageGroupId`
+is the inventory item's ID, not the sending counter's ID.** Group by
+counter instead, and two counters editing the same item race each other in
+parallel Lambda invocations — which reintroduces the exact bug this
+project exists to prevent.
+
+## What makes this correct, not just working
 
 Every one of these pieces is load-bearing, not decorative:
 
